@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" fill="none">
+  <defs><radialGradient id="bg"><stop stop-color="#39455c"/><stop offset="1" stop-color="#141921"/></radialGradient><linearGradient id="line"><stop stop-color="#b397ff"/><stop offset="1" stop-color="#93b7e7"/></linearGradient></defs>
+  <path fill="url(#bg)" d="M0 0h800v450H0z"/>
+  <g stroke="url(#line)" stroke-width="2"><path d="m400 82 162 280H238z"/><path d="m400 125 125 215H275z" stroke-opacity=".55"/><path d="m400 170 86 148H314z" stroke-opacity=".3"/><circle cx="400" cy="246" r="94"/><path d="M180 362h440M400 82v280" stroke-opacity=".25"/></g>
+  <circle cx="400" cy="246" r="12" fill="#b397ff"/>
+  <text x="34" y="410" fill="#c5d1e5" font-family="monospace" font-size="13" letter-spacing="3">IDEAS LEAVE A TRACE / 2026</text>
+  <text x="34" y="42" fill="#c5d1e5" font-family="monospace" font-size="12" letter-spacing="2">HACKATHON · DEMO 03</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" fill="none">
+  <defs><radialGradient id="bg"><stop stop-color="#34483a"/><stop offset="1" stop-color="#101b18"/></radialGradient><linearGradient id="line"><stop stop-color="#d4fa70"/><stop offset="1" stop-color="#7abfab"/></linearGradient></defs>
+  <path fill="url(#bg)" d="M0 0h800v450H0z"/>
+  <g stroke="url(#line)" stroke-width="2"><path d="m400 66 164 93v132l-164 93-164-93V159z"/><path d="m400 112 124 70v86l-124 70-124-70v-86z" stroke-opacity=".5"/><path d="m400 159 82 47v38l-82 47-82-47v-38z"/><path d="m236 159 164 94 164-94M400 253v131M400 66v93M236 291l82-47M482 244l82 47" stroke-opacity=".55"/></g>
+  <circle cx="400" cy="225" r="14" fill="#d4fa70"/>
+  <text x="34" y="410" fill="#c9dacb" font-family="monospace" font-size="13" letter-spacing="3">THE NEXT POSSIBILITY / 2027</text>
+  <text x="34" y="42" fill="#c9dacb" font-family="monospace" font-size="12" letter-spacing="2">HACKATHON · DEMO 02</text>
+</svg>
