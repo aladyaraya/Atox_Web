@@ -260,7 +260,7 @@ test("Real email return, nickname gate, desired likes, comments, moderation and 
   ).toHaveCount(0);
   await moderator.close();
 });
-test("A lost comment response survives reload and reuses the original key without a duplicate", async ({
+test("A lost comment response survives login expiry and reload without a duplicate", async ({
   page,
   context,
 }) => {
@@ -289,15 +289,28 @@ test("A lost comment response survives reload and reuses the original key withou
   ).toBeVisible();
   await expect(page.getByLabel("写下你的评论", { exact: true })).toBeDisabled();
   await page.unroute("**/api/projects/idea-atlas/comments");
-  await page.reload();
-  await expect(
-    page.getByRole("button", { name: "核对原发送结果", exact: true }),
-  ).toBeVisible();
   await page.route("**/api/projects/idea-atlas/comments", async (route) => {
     if (route.request().method() === "POST")
       ids.push(route.request().postDataJSON().requestId);
     await route.continue();
   });
+  await context.clearCookies({ name: "hackathon_session" });
+  const expired = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/projects/idea-atlas/comments") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "核对原发送结果", exact: true })
+    .click();
+  expect((await expired).status()).toBe(401);
+  await expect(
+    page.getByRole("link", { name: /登录后发表评论/ }),
+  ).toBeVisible();
+  await fixtureSignIn(page, context, "network");
+  await expect(
+    page.getByRole("button", { name: "核对原发送结果", exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "核对原发送结果", exact: true })
     .click();
@@ -306,7 +319,7 @@ test("A lost comment response survives reload and reuses the original key withou
     await context.request.get("/api/projects/idea-atlas/comments")
   ).json();
   expect(after.total).toBe(before.total + 1);
-  expect(ids.length).toBe(2);
+  expect(ids.length).toBe(3);
   expect(new Set(ids).size).toBe(1);
 });
 test("Likes sort globally, return URLs are confined to the board and mobile detail is bilingual", async ({

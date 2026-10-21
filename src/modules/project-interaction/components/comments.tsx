@@ -158,11 +158,15 @@ export function Comments({
         e.status >= 400 &&
         e.status < 500
       ) {
-        setAttempt(null);
-        try {
-          sessionStorage.removeItem(storageKey + ":pending");
-          sessionStorage.setItem(storageKey + ":draft", input.body);
-        } catch {}
+        // A rejected retry cannot disprove an earlier unknown result.
+        // Retain its key across login expiry or temporary unavailability.
+        if (!attempt) {
+          setAttempt(null);
+          try {
+            sessionStorage.removeItem(storageKey + ":pending");
+            sessionStorage.setItem(storageKey + ":draft", input.body);
+          } catch {}
+        }
         if (e.status === 401) setExpired(true);
       }
     } finally {
