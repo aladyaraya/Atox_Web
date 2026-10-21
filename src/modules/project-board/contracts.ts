@@ -2,12 +2,14 @@ export type LocalizedText = { zh: string; en: string };
 export type ProjectCategory =
   "software" | "hardware" | "game" | "aigc" | "other";
 export interface ProjectFilters {
+  sort?: string;
   q?: string;
   category?: string;
   event?: string;
   page?: string;
 }
 export interface ProjectCard {
+  stats: { likeCount: number; commentCount: number; likedByMe: boolean };
   id: string;
   name: LocalizedText;
   introduction: LocalizedText;
@@ -19,6 +21,23 @@ export interface ProjectCard {
   event: { id: string; name: LocalizedText; href: string } | null;
   publishedAt: string;
   demo: boolean;
+}
+export interface ProjectMedia {
+  src: string;
+  alt: LocalizedText;
+}
+export interface ProjectDetails {
+  description: LocalizedText[];
+  media: ProjectMedia[];
+  links: {
+    kind: "demo" | "code" | "video";
+    href: string;
+    label: LocalizedText;
+  }[];
+}
+export interface ProjectDetailDto {
+  project: ProjectCard;
+  details: ProjectDetails;
 }
 export interface ProjectBoardDto {
   projects: ProjectCard[];

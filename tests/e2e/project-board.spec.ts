@@ -6,6 +6,14 @@ test("Project filters, paging, URL restoration, API parity and public boundaries
 }) => {
   await page.goto("/projects");
   await expect(page.locator(".pb-card")).toHaveCount(9);
+  expect(
+    decodeURIComponent(
+      (await page
+        .locator(".pi-card-actions .pi-like a")
+        .first()
+        .getAttribute("href"))!,
+    ),
+  ).toContain("returnTo=");
   await expect(page.locator(".pb-results-heading")).toContainText("12 个项目");
   await page.getByRole("button", { name: "下一页" }).click();
   await expect(page).toHaveURL(/page=2$/);
@@ -60,6 +68,7 @@ test("Project filters, paging, URL restoration, API parity and public boundaries
         "event",
         "publishedAt",
         "demo",
+        "stats",
       ].sort(),
     );
   expect((await request.post("/api/projects", { data: {} })).status()).toBe(
@@ -67,55 +76,55 @@ test("Project filters, paging, URL restoration, API parity and public boundaries
   );
   expect(
     (await request.post("/api/projects/files", { data: {} })).status(),
-  ).toBe(404);
-  expect((await request.get("/projects/idea-atlas")).status()).toBe(404);
+  ).toBe(405);
+  expect((await request.get("/projects/idea-atlas")).status()).toBe(200);
   expect((await request.get("/api/events/demo/materials")).status()).toBe(401);
 });
 
-test("Project preview preserves focus, scroll and filters and links into event participation", async ({
+test("Project detail navigation preserves filters and supports media and activity links", async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/projects?category=software");
-  const card = page.getByRole("button", {
-    name: "预览项目: 灵感地图",
-    exact: true,
-  });
-  await card.focus();
-  const scroll = await page.evaluate(() => window.scrollY);
+  await page.goto("/projects?category=software&sort=oldest");
+  await page
+    .getByRole("link", { name: "查看项目: 灵感地图", exact: true })
+    .focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "灵感地图" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.locator(".pb-tags span")).toHaveCount(4);
-  await expect(page.getByRole("button", { name: "关闭预览" })).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  expect(
-    await page.evaluate(() =>
-      Boolean(document.activeElement?.closest("dialog")),
-    ),
-  ).toBe(true);
-  await page.keyboard.press("Tab");
+  await expect(page).toHaveURL(/\/projects\/idea-atlas\?returnTo=/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("灵感地图");
+  await expect(page.locator(".pi-detail-header .pb-tags span")).toHaveCount(4);
+  await expect(page.locator(".pi-description")).toContainText(
+    "验证方向与当前阶段",
+  );
+  await page.getByRole("button", { name: "放大项目图片" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(card).toBeFocused();
-  expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
-  await expect(page).toHaveURL(/category=software$/);
-  await card.click();
-  await page.mouse.click(4, 4);
-  await expect(dialog).toHaveCount(0);
-  await card.click();
-  await page.getByRole("button", { name: "关闭预览" }).click();
-  await expect(card).toBeFocused();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "放大项目图片" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "下一张图片" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".pi-gallery-controls")).toContainText("2 / 2");
+  await page.getByRole("link", { name: "返回项目展区", exact: true }).click();
+  await expect(page).toHaveURL(
+    /category=software.*sort=oldest|sort=oldest.*category=software/,
+  );
+  await expect(page.getByLabel("项目排序")).toHaveValue("oldest");
   await page.goto("/projects");
   await page.screenshot({
     path: info.outputPath("projects-desktop.png"),
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "预览项目: 灵感地图", exact: true })
+    .getByRole("link", { name: "查看项目: 灵感地图", exact: true })
     .click();
-  await page.screenshot({ path: info.outputPath("project-preview.png") });
-  await page.getByRole("dialog").locator('a[href="/events/demo"]').click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("灵感地图");
+  await page.screenshot({
+    path: info.outputPath("project-detail.png"),
+    fullPage: true,
+  });
+  await page.locator('.pi-detail-actions a[href="/events/demo"]').click();
   await expect(page).toHaveURL(/\/events\/demo$/);
   await page.locator('.pc-shortcuts a[href="/events/demo/register"]').click();
   await expect(page).toHaveURL(/login\?next=%2Fevents%2Fdemo%2Fregister$/);
@@ -155,21 +164,22 @@ test("Bilingual mobile gallery, missing images, reduced motion and honest submis
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "Preview project: Idea Atlas", exact: true })
+    .getByRole("link", { name: "View project: Idea Atlas", exact: true })
     .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Idea Atlas",
+  );
   expect(
-    await page
-      .getByRole("dialog")
-      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Close preview" }).click();
-  expect(
-    await page
-      .locator(".pb-card-button")
-      .first()
-      .evaluate((el) => getComputedStyle(el).transitionDuration),
-  ).toBe("0s");
+  await page.getByRole("button", { name: "Enlarge project image" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Close image" }).click();
+  await page
+    .getByRole("link", { name: "Back to projects", exact: true })
+    .click();
   await page
     .locator(".pb-hero")
     .getByRole("link", { name: "Submit a project", exact: true })

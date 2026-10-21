@@ -1,5 +1,11 @@
 # M001 · 邮箱认证模块
 
+## 统一公开昵称兼容增量（2026-10-22）
+
+新增 profile-schema.ts/account_profiles，不修改 users、验证码、会话及旧认证 DTO。server.ts 公开 getAccountProfile(user)、updateNickname(user,input)、getPublicNicknames(ids,reader?)；后者仅供服务端公开昵称投影，不提供按用户 ID 查询资料的公开 HTTP 接口。纯服务测试使用 profile.ts。
+
+GET /api/account/profile 登录后返回 {nickname,revision}，未设置为 null/0；PUT 接收 {nickname,revision}，trim 后 2—30 Unicode 码点、拒绝控制字符、允许重名。修订冲突 409，不覆盖输入。浏览器 profile-client.ts，账户和首次评论复用 NicknameEditor。更新昵称不覆盖报名／订单姓名快照，也不影响认证或点赞资格。迁移 0008 与 M012 同次追加，配置不增加，完整验证见 M012 验收。
+
 ## 当前维护摘要（2026-10-10）
 
 - 职责：身份与开发邮箱；不包含业务资格／角色。

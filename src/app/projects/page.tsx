@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/modules/auth/server";
 import { getProjects } from "@/modules/project-board/server";
 import { ProjectBoardView } from "@/modules/project-board/components/board-view";
 import "@/modules/project-board/styles.css";
+import "@/modules/project-interaction/styles.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,14 +19,16 @@ export default async function ProjectsPage({
   const query = await searchParams;
   const value = (key: string) =>
     Array.isArray(query[key]) ? query[key][0] : query[key];
-  const [user, initial] = await Promise.all([
-    getCurrentUser(),
-    getProjects({
+  const user = await getCurrentUser();
+  const initial = await getProjects(
+    {
+      sort: value("sort"),
       q: value("q"),
       category: value("category"),
       event: value("event"),
       page: value("page"),
-    }),
-  ]);
+    },
+    user,
+  );
   return <ProjectBoardView initial={initial} signedIn={Boolean(user)} />;
 }

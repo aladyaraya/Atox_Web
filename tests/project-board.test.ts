@@ -9,11 +9,61 @@ import {
 } from "../src/modules/project-board/rules";
 import { eventRegistry } from "../src/modules/event-board/config";
 import { getEventStage, getEventYear } from "../src/modules/event-board/rules";
+import { safeProjectReturn } from "../src/modules/project-board/return-to";
 const events = eventRegistry
   .filter((e) => e.published)
   .map((e) => ({ ...e, year: getEventYear(e), stage: getEventStage(e) }));
 const query = (filters = {}) =>
   readProjectCatalog(projectRegistry, events, filters);
+
+test("Sorts the full filtered catalog before pagination, with deterministic ties and safe return URLs", () => {
+  const counts = new Map(
+    projectRegistry.map((p) => [
+      p.id,
+      { likeCount: 0, commentCount: 0, likedByMe: false },
+    ]),
+  );
+  counts.get("trail-lines")!.likeCount = 50;
+  counts.get("blank-canvas")!.likeCount = 49;
+  const sorted = readProjectCatalog(
+    projectRegistry,
+    events,
+    { sort: "likes" },
+    counts,
+  );
+  assert.deepEqual(
+    sorted.projects.slice(0, 2).map((p) => p.id),
+    ["trail-lines", "blank-canvas"],
+  );
+  assert.equal(query({ sort: "oldest" }).projects[0].id, "blank-canvas");
+  assert.deepEqual(query({ sort: "invalid" }), query());
+  assert.equal(
+    readProjectCatalog(
+      projectRegistry,
+      events,
+      { sort: "likes", category: "hardware" },
+      counts,
+    ).projects[0].id,
+    "pocket-garden",
+  );
+  assert.equal(
+    parseFilters(new URLSearchParams("sort=likes&page=2")).sort,
+    "likes",
+  );
+  for (const value of [
+    "https://example.com",
+    "//example.com/projects",
+    "/projects/idea-atlas",
+    "/projects\\evil",
+    "/login",
+    "/projects#evil",
+  ])
+    assert.equal(safeProjectReturn(value), "/projects");
+  assert.equal(
+    safeProjectReturn("/projects?sort=likes&page=2"),
+    "/projects?sort=likes&page=2",
+  );
+});
 
 test("Project catalog sorts across page boundaries, preserves ties and never mutates configuration", () => {
   const original = JSON.stringify(projectRegistry);
@@ -131,6 +181,7 @@ test("Public projection excludes unpublished projects, hidden activities and pri
       "event",
       "publishedAt",
       "demo",
+      "stats",
     ].sort(),
   );
   assert.ok(

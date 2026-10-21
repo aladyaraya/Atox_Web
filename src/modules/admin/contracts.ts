@@ -5,6 +5,7 @@ export type AdminPermission =
   | "admin:manage"
   | "admin:audit"
   | "admin:materials"
+  | "admin:project-comments"
   | "admin:content";
 export interface AdminIdentity {
   userId: string;

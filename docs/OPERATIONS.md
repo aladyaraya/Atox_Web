@@ -19,6 +19,8 @@ Node 24、npm ci、自己的 .env.local；密钥仅服务端，至少 32 字符�
 
 完整顺序见根 README。测试套件串行运行，端口已有监听就排查占用，不启用复用真实服务器。生产测试先构建；下一次 build/start 使用相同输出目录。可在 PowerShell 中设置 `$env:NEXT_DIST_DIR='.next-ci'` 和 `$env:DB_PATH='.data/maintenance-build/db'`、`$env:UPLOAD_PATH='.data/maintenance-build/uploads'`，隔离当前 3000 网站；构建结束后移除本 shell 的临时变量。CI 同样隔离，并由测试配置覆盖开发预览开关与测试密钥。
 
+浏览器套件不仅共享默认报告根目录，还可能清理其他套件的 trace；不得并行使用默认输出目录。排错时可指定 `--output=.data/qa-模块名-套件名`。新增非认证测试优先复用隔离服务器中已验证的 fixture 身份，保留必要真实登录路径，不通过放宽原验证码每来源限额来扩大回归套件。
+
 `npx next typegen` 可在新 checkout 生成 next-env 和路由类型，再运行 typecheck。不提交 Next.js 自动产物。失败查终端和本地 test-results，trace 可能包含登录 Cookie／填写资料，不能发到公开 issue 或默认上传到 Actions 附件。
 
 ## 迁移与备份

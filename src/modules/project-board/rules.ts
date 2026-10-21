@@ -7,6 +7,9 @@ export function normalizeFilters(
   const raw = filters.page ?? "1";
   const number = /^\d+$/.test(raw) ? Number(raw) : 1;
   return {
+    sort: ["newest", "oldest", "likes"].includes(filters.sort ?? "")
+      ? filters.sort!
+      : "newest",
     q: (filters.q ?? "").trim(),
     category: filters.category === "all" ? "" : (filters.category ?? ""),
     event: filters.event === "all" ? "" : (filters.event ?? ""),
@@ -16,7 +19,7 @@ export function normalizeFilters(
 export function parseFilters(query: URLSearchParams): Required<ProjectFilters> {
   return normalizeFilters(
     Object.fromEntries(
-      ["q", "category", "event", "page"].map((key) => [
+      ["q", "category", "event", "page", "sort"].map((key) => [
         key,
         query.get(key) ?? undefined,
       ]),
@@ -27,7 +30,12 @@ export function projectQuery(filters: ProjectFilters): string {
   const normalized = normalizeFilters(filters);
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(normalized)) {
-    if (value && !(key === "page" && value === "1")) query.set(key, value);
+    if (
+      value &&
+      !(key === "page" && value === "1") &&
+      !(key === "sort" && value === "newest")
+    )
+      query.set(key, value);
   }
   return query.size ? `?${query}` : "";
 }
@@ -60,7 +68,12 @@ export function queryProjects(
     })
     .sort(
       (a, b) =>
-        Date.parse(b.publishedAt) - Date.parse(a.publishedAt) ||
+        (filters.sort === "likes"
+          ? b.stats.likeCount - a.stats.likeCount
+          : 0) ||
+        (filters.sort === "oldest"
+          ? Date.parse(a.publishedAt) - Date.parse(b.publishedAt)
+          : Date.parse(b.publishedAt) - Date.parse(a.publishedAt)) ||
         a.id.localeCompare(b.id),
     );
   const page = Number(filters.page);

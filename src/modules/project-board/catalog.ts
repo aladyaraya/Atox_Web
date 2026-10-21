@@ -8,6 +8,7 @@ export function readProjectCatalog(
   registry: ProjectDefinition[],
   events: BoardCardDto[],
   filters: ProjectFilters = {},
+  stats: Map<string, ProjectCard["stats"]> = new Map(),
 ) {
   const projects: ProjectCard[] = registry
     .filter(
@@ -18,6 +19,11 @@ export function readProjectCatalog(
     .map((p) => {
       const event = events.find((event) => event.id === p.eventId);
       return {
+        stats: stats.get(p.id) ?? {
+          likeCount: 0,
+          commentCount: 0,
+          likedByMe: false,
+        },
         id: p.id,
         name: p.name,
         introduction: p.introduction,

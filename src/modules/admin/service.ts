@@ -29,9 +29,15 @@ const permissions = (role: AdminRole): AdminPermission[] =>
         "admin:manage",
         "admin:audit",
         "admin:materials",
+        "admin:project-comments",
         "admin:content",
       ]
-    : ["admin:access", "admin:materials", "admin:content"];
+    : [
+        "admin:access",
+        "admin:materials",
+        "admin:content",
+        "admin:project-comments",
+      ];
 const dto = (value: Account): AdministratorDto => ({
   ...value,
   createdAt: value.createdAt.toISOString(),
@@ -121,19 +127,17 @@ export async function appendBusinessAudit(
     after: unknown;
   },
 ) {
-  await tx
-    .insert(businessAuditLogs)
-    .values({
-      id: randomUUID(),
-      actor: actor(input.actor),
-      action: input.action,
-      resourceType: input.resourceType,
-      resourceId: input.resourceId,
-      eventId: input.eventId ?? null,
-      before: input.before,
-      after: input.after,
-      createdAt: new Date(),
-    });
+  await tx.insert(businessAuditLogs).values({
+    id: randomUUID(),
+    actor: actor(input.actor),
+    action: input.action,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    eventId: input.eventId ?? null,
+    before: input.before,
+    after: input.after,
+    createdAt: new Date(),
+  });
 }
 export async function getAdministrator(
   user: AuthUser,

@@ -16,9 +16,9 @@ export const adminCopy = {
     welcome: "管理权限已开通",
     intro: "这里是官方人员的管理入口。",
     scope:
-      "材料审核、活动草稿与发布、官网内容维护分别由独立子模块提供。审核通过不代表公开发布。",
+      "材料审核、项目评论管理、活动草稿与发布、官网内容维护分别由独立子模块提供。审核通过不代表公开发布。",
     operatorScope:
-      "运营管理员可审核选手正式材料、维护活动和官网内容；不能管理管理员权限或读取权限审计。",
+      "运营管理员可审核选手正式材料、管理项目评论、维护活动和官网内容；不能管理管理员权限或读取权限审计。",
     superScope: "超级管理员可授予、调整或停用管理员权限，并查看权限操作记录。",
     denied: "无权访问",
     deniedDetail: "当前账户无权访问此管理页面。管理权限须由超级管理员授予。",
@@ -100,9 +100,9 @@ export const adminCopy = {
     welcome: "Admin access is enabled",
     intro: "The management workspace for official staff.",
     scope:
-      "Separate modules provide material review, event publishing and website content. Approval does not publish a submission.",
+      "Separate modules provide material review, project comment moderation, event publishing and website content. Approval does not publish a submission.",
     operatorScope:
-      "Operations administrators can review official submissions and maintain events and website content. They cannot manage administrator access or read permission audits.",
+      "Operations administrators can review official submissions, moderate project comments and maintain events and website content. They cannot manage administrator access or read permission audits.",
     superScope:
       "Super administrators can grant, change or disable admin access and read permission audit records.",
     denied: "Access denied",
