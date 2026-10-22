@@ -1,0 +1,54 @@
+name: atox-m013-logto-lab
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: m013_lab
+      POSTGRES_DB: m013_logto_lab
+      POSTGRES_PASSWORD: ${LOGTO_LAB_POSTGRES_PASSWORD:?Run npm run init}
+    volumes:
+      - logto_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U m013_lab -d m013_logto_lab"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:13325:8025"
+    environment:
+      MP_MAX_MESSAGES: 100
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    # No SMTP host port, relay, forwarding or persistent mailbox volume.
+  logto:
+    image: ghcr.io/logto-io/logto:1.45.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    entrypoint: [sh, -c, "npm run cli db seed -- --swe && npm start"]
+    ports:
+      - "127.0.0.1:3301:3001"
+      - "127.0.0.1:3302:3002"
+    environment:
+      DB_URL: ${LOGTO_LAB_DB_URL:?Run npm run init}
+      ENDPOINT: http://127.0.0.1:3301
+      ADMIN_ENDPOINT: http://127.0.0.1:3302
+      # Keep upstream SSRF protection enabled; no external connectors in this lab.
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/oidc/.well-known/openid-configuration').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+volumes:
+  logto_pg:
