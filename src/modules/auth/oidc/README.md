@@ -35,7 +35,7 @@ OIDC_EMAIL_TRUST=local-sandbox 必须是回环网站／服务且 DB_PATH 位于 
 
 OIDC 会话最多 15 分钟或 ID token 到期，绝对过期、不续期；随机令牌摘要落库，HttpOnly／Lax。不长期保存 access／refresh token，ID token 仅 AES-256-GCM 加密供退出。临时 SDK／身份载荷用途隔离加密，流程 10 分钟。完成清理临时载荷；加密回执允许原流程 Cookie 在响应丢失时恢复同一个未撤销会话，不重复建会话或复活退出状态。
 
-关开关或改变 issuer／客户端／信任／站点／OIDC_SESSION_VERSION，使 M001 立即拒绝 OIDC 会话，未关联邮箱会话仍按原 7 天规则。关联成功撤销目标账号旧会话。已关联用户的开发 OTP 永久拒绝 OIDC_REQUIRED，关开关也不恢复绕过。回退保留账号、映射、审计，恢复正确配置后重验；没有可信备用凭据时不自助解绑。
+关开关或改变 issuer／客户端／信任／站点／OIDC_SESSION_VERSION，使 M001 立即拒绝 OIDC 会话，未关联邮箱会话仍按原 7 天规则。轮换加密密钥时同时提升 OIDC_SESSION_VERSION 并重启，旧流程重新申请；旧密钥随匹配备份受控保留。关联成功撤销目标账号旧会话。已关联用户的开发 OTP 永久拒绝 OIDC_REQUIRED，关开关也不恢复绕过。回退保留账号、映射、审计，恢复正确配置后重验；没有可信备用凭据时不自助解绑。
 
 ## 旧账号归属
 

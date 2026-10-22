@@ -2,7 +2,7 @@
 
 ## M014 · 官网 OIDC 与原账号映射（2026-10-22）
 
-M001 内部 src/modules/auth/oidc，业务仍用 getCurrentUser／本地 UUID。第三客户端、开发隔离开关、邮箱冲突暂停、新鲜验证、独立证据批准、一次性确认、会话与审计；0009 追加五表。真实环境不改，不自动绑定现有用户。验收中，见 [README](../src/modules/auth/oidc/README.md)、[结果](M014-VALIDATION.md)。
+M001 内部 src/modules/auth/oidc，业务仍用 getCurrentUser／本地 UUID。第三客户端、开发隔离开关、邮箱冲突暂停、新鲜验证、独立证据批准、一次性确认、会话与审计；0009 追加五表。真实环境不改，不自动绑定现有用户，25 张旧表内容保留。112 服务／50 原业务浏览器／3 真实官网协议及 M013 回归通过，见 [README](../src/modules/auth/oidc/README.md)、[结果](M014-VALIDATION.md)。生产始终关闭，本机运行 Logto 仍需 Docker。
 
 ## M013 · Logto＋OIDC 隔离验证（2026-10-22）
 
@@ -35,7 +35,7 @@ M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolve
 | M011 | 官网内容管理 | 1.0.0 · 结构化内容基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M012 | 项目详情与互动 | 1.0.0 · 点赞、评论及管理 | `src/modules/project-interaction/` | [模块说明](../src/modules/project-interaction/README.md) |
 | M013 | Logto＋OIDC 第一阶段 | 1.0.0 · 隔离验证与接入准备 | `labs/logto-oidc/` | [模块说明](../labs/logto-oidc/README.md) |
-| M014 | 官网 Logto 与原账号映射 | 1.0.0 · 本地接入验收中 | `src/modules/auth/oidc/` | [说明](../src/modules/auth/oidc/README.md) |
+| M014 | 官网 Logto 与原账号映射 | 1.0.0 · 本地接入已验收 | `src/modules/auth/oidc/` | [说明](../src/modules/auth/oidc/README.md) |
 
 后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
 
