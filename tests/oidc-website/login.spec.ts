@@ -24,6 +24,12 @@ async function emailVerify(
   email: string,
   register = true,
 ) {
+  // The website button first awaits its start API before navigating; inspect
+  // provider controls only after that navigation, never the website DOM.
+  await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:3301\//);
+  await expect(
+    page.locator('input[type="email"],input[name="identifier"]').first(),
+  ).toBeVisible();
   if (register) {
     const link = page.getByRole("link", {
       name: /create(?: an)? account|sign up/i,
