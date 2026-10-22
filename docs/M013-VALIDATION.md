@@ -5,7 +5,7 @@
 ## 本机验证
 
 - 已阅读 AGENTS、PROJECT_STATUS、MODULES、M001 README；检查 auth/server.ts、session.ts、service.ts、schema／contracts、业务用户外键及 M008 authorizeAdmin。阅读已安装 Next 16.4 Route Handlers 指南和官方 Logto 接入、部署、SMTP 文档。
-- 当前电脑无 Docker／Podman，WSL 提示未安装。没有安装系统虚拟化组件，没有声称真实 Logto 已在这台电脑运行。真实部署测试由隔离 Linux CI 执行，结果后续记录在此及 PR。
+- 当前电脑无 Docker／Podman，WSL 提示未安装。没有安装系统虚拟化组件，没有声称真实 Logto 已在这台电脑运行。真实部署测试由隔离 Linux CI 执行，成功结果见下。
 - 本地 5 项隔离测试通过：显式开发开关、真实生产启动全路径 404、回调／Host／Origin 拒绝、Cookie 独立及诊断脱敏。实验依赖独立 lockfile，安装审计当时 0 已知漏洞；不把这项结果当成所有镜像安全审计。
 - 认证源码、共享 DB、Drizzle 迁移、真实 `.env.local`、管理员授权未修改。未打开网站数据库执行迁移／绑定；原未提交产品思维导图保留。
 - 首次真实环境验证：Compose 部署／客户端注册／SMTP 配置成功，安全负例通过；注册后的自动跳转被测试误认作仍需点击 Continue，改成等待实际回调完成，未绕过 OIDC／OTP。
@@ -22,7 +22,9 @@
 - 伪造、跨客户端及已消费回调、非法外部回调、无效 client secret／凭证和缺少 verifier 拒绝，不能建立本地身份。
 - 配置、token、授权码、测试邮件、认证 trace、PostgreSQL volume 不上传为制品。测试不挂载网站数据，无生产部署。
 
-实际远端执行结果在完成验证后补录；在此之前不标注上述场景已通过。
+2026-10-22，[真实部署 CI #39720637948](https://github.com/aladyaraya/Atox_Web/actions/runs/39720637948) 在运行源码 `8b56b35` 上全部通过：5 项隔离测试、Compose 健康启动、真实 Management API 配置及 2 项端到端流程。上列 SSO／独立会话／退出边界及安全负例均实际通过，没有以 mock 身份替代。
+
+本地类型／Lint 和 5 项隔离测试通过，既有票务键盘流程在稳定订单初始化后连续 3 次通过。主站完整 CI 继续执行既有 97 项服务、49 项浏览器、禁用保护和构建；最终提交结果以 PR 的 verify 检查为准，后续纯文档提交不改变本次已验证的运行源码。
 
 ## 集成与运行边界
 
