@@ -10,6 +10,7 @@ import {
   oidcFailure,
   oidcRedirect,
   setLoginCookie,
+  canonicalCallback,
 } from "@/modules/auth/oidc/http";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   try {
     const jar = await cookies();
     const receipt = await finishOidc(
-      request.url,
+      canonicalCallback(request, requireOidcConfig()),
       jar.get(FLOW_COOKIE)?.value,
       jar.get(SESSION_COOKIE)?.value,
     );

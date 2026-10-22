@@ -4,12 +4,28 @@ import { SESSION_COOKIE } from "../policy";
 import { FLOW_COOKIE, FLOW_SECONDS } from "./config";
 import { OidcError } from "./errors";
 import type { LoginReceipt } from "./service";
+import type { OidcConfig } from "./config";
 const options = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
 };
+/** Next dev can canonicalize Request.url to its internal localhost hostname.
+ * Validate the public Host/protocol/path, then use the configured registered
+ * callback. The redirect origin is never derived from a request header.
+ */
+export function canonicalCallback(request: Request, config: OidcConfig) {
+  const incoming = new URL(request.url),
+    expected = new URL(config.callback);
+  if (
+    request.headers.get("host") !== expected.host ||
+    incoming.protocol !== expected.protocol ||
+    incoming.pathname !== expected.pathname
+  )
+    throw new OidcError("CALLBACK_REJECTED");
+  return config.callback + incoming.search;
+}
 export function setFlowCookie(response: NextResponse, token: string) {
   response.cookies.set(FLOW_COOKIE, token, {
     ...options,

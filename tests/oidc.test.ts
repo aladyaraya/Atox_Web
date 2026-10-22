@@ -2,7 +2,9 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, generateKeyPairSync, sign, createHash } from "node:crypto";
+import { createServer } from "node:http";
+import { canonicalCallback } from "../src/modules/auth/oidc/http";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb, closeDb } from "../src/lib/db";
 import {
@@ -35,6 +37,10 @@ import {
   revokeSession,
 } from "../src/modules/auth/service";
 import type { VerifiedIdentity } from "../src/modules/auth/oidc/provider";
+import {
+  beginAuthorization,
+  verifyAuthorization,
+} from "../src/modules/auth/oidc/provider";
 let directory: string;
 const rejects = (code: string) => (e: unknown) => {
   assert.equal((e as { code: string }).code, code);
@@ -163,6 +169,31 @@ test("OIDC production/disabled guards and sandbox cannot use business DB or nonl
     () => getOidcConfig({ ...env, OIDC_ENCRYPTION_SECRET: env.AUTH_SECRET }),
     rejects("DISABLED"),
   );
+});
+test("Next internal hostname is canonicalized only after checking the exact public callback host, scheme and path", () => {
+  const config = requireOidcConfig();
+  const valid = new Request(
+    "http://localhost:3104/api/auth/oidc/callback?state=fixture-state&code=fixture-code",
+    { headers: { host: "127.0.0.1:3104" } },
+  );
+  assert.equal(
+    canonicalCallback(valid, config),
+    config.callback + "?state=fixture-state&code=fixture-code",
+  );
+  for (const input of [
+    new Request(valid.url),
+    new Request(valid.url, { headers: { host: "attacker.invalid" } }),
+    new Request("https://localhost:3104/api/auth/oidc/callback", {
+      headers: { host: "127.0.0.1:3104" },
+    }),
+    new Request("http://localhost:3104/not-callback", {
+      headers: { host: "127.0.0.1:3104" },
+    }),
+  ])
+    assert.throws(
+      () => canonicalCallback(input, config),
+      rejects("CALLBACK_REJECTED"),
+    );
 });
 test("flow encryption is authenticated and purpose-separated", () => {
   const value = seal({ secret: "private" }, "purpose-a");
@@ -466,5 +497,144 @@ test("unexpired OIDC/local users persist across restart; config revocation affec
     assert.equal((await getUserByToken(old.token))?.id, old.id);
   } finally {
     delete process.env.OIDC_SESSION_VERSION;
+  }
+});
+
+test("official SDK verifies a signed isolated provider response, PKCE, nonce and callback state", async () => {
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  });
+  const key = {
+    ...publicKey.export({ format: "jwk" }),
+    kid: "isolated-key",
+    use: "sig",
+    alg: "RS256",
+  };
+  let providerOrigin = "",
+    nonce = "",
+    challenge = "",
+    wrongNonce = false;
+  const server = createServer(async (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    if (req.url === "/oidc/.well-known/openid-configuration") {
+      res.end(
+        JSON.stringify({
+          issuer: providerOrigin + "/oidc",
+          authorization_endpoint: providerOrigin + "/oidc/auth",
+          token_endpoint: providerOrigin + "/oidc/token",
+          userinfo_endpoint: providerOrigin + "/oidc/me",
+          jwks_uri: providerOrigin + "/oidc/jwks",
+          end_session_endpoint: providerOrigin + "/oidc/session/end",
+          revocation_endpoint: providerOrigin + "/oidc/token/revocation",
+          response_types_supported: ["code"],
+          subject_types_supported: ["public"],
+          id_token_signing_alg_values_supported: ["RS256"],
+          token_endpoint_auth_methods_supported: ["client_secret_basic"],
+        }),
+      );
+      return;
+    }
+    if (req.url === "/oidc/jwks") {
+      res.end(JSON.stringify({ keys: [key] }));
+      return;
+    }
+    if (req.url === "/oidc/token") {
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      const form = new URLSearchParams(body);
+      const actual = createHash("sha256")
+        .update(form.get("code_verifier") ?? "")
+        .digest("base64url");
+      if (actual !== challenge || form.get("code") !== "isolated-code") {
+        res.writeHead(400).end('{"error":"invalid_grant"}');
+        return;
+      }
+      const header = Buffer.from(
+        JSON.stringify({ alg: "RS256", kid: "isolated-key", typ: "JWT" }),
+      ).toString("base64url");
+      const claims = Buffer.from(
+        JSON.stringify({
+          iss: providerOrigin + "/oidc",
+          sub: "isolated-subject",
+          aud: "unit-client",
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          nonce: wrongNonce ? "wrong-nonce" : nonce,
+          email: "provider@example.test",
+          email_verified: true,
+          auth_time: Math.floor(Date.now() / 1000),
+        }),
+      ).toString("base64url");
+      const payload = header + "." + claims;
+      res.end(
+        JSON.stringify({
+          access_token: "isolated-access",
+          token_type: "Bearer",
+          expires_in: 3600,
+          id_token:
+            payload +
+            "." +
+            sign("RSA-SHA256", Buffer.from(payload), privateKey).toString(
+              "base64url",
+            ),
+          scope: "openid email",
+        }),
+      );
+      return;
+    }
+    res.writeHead(404).end("{}");
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  providerOrigin = "http://127.0.0.1:" + address.port;
+  const config = {
+    ...requireOidcConfig(),
+    endpoint: providerOrigin,
+    issuer: providerOrigin + "/oidc",
+  };
+  try {
+    nonce = opaque();
+    const authorization = await beginAuthorization(config, nonce, false);
+    challenge = new URL(authorization.url).searchParams.get("code_challenge")!;
+    const callback =
+      config.callback +
+      "?code=isolated-code&state=" +
+      encodeURIComponent(authorization.state);
+    const verified = await verifyAuthorization(
+      config,
+      authorization.storage,
+      callback,
+      nonce,
+    );
+    assert.equal(verified.subject, "isolated-subject");
+    assert.equal(verified.email, "provider@example.test");
+    nonce = opaque();
+    const next = await beginAuthorization(config, nonce, false);
+    challenge = new URL(next.url).searchParams.get("code_challenge")!;
+    wrongNonce = true;
+    await assert.rejects(
+      verifyAuthorization(
+        config,
+        { ...next.storage },
+        config.callback +
+          "?code=isolated-code&state=" +
+          encodeURIComponent(next.state),
+        nonce,
+      ),
+      rejects("CALLBACK_REJECTED"),
+    );
+    await assert.rejects(
+      verifyAuthorization(
+        config,
+        { ...next.storage },
+        config.callback + "?code=isolated-code&state=forged",
+        nonce,
+      ),
+      rejects("CALLBACK_REJECTED"),
+    );
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
