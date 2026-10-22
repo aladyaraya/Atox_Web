@@ -49,7 +49,9 @@ export function createLabApp(config) {
     res.set({
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer",
+      // no-referrer makes native form POST send Origin:null; preserve same-
+      // origin forms while withholding callback URLs from other origins.
+      "Referrer-Policy": "same-origin",
       "Content-Security-Policy":
         "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
     });

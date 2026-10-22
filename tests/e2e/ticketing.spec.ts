@@ -130,6 +130,11 @@ test("Changing selection closes unpaid order; late payment requires reconciliati
   await finishLogin(page, context, `ticket-late-${Date.now()}@example.com`);
   await fill(page);
   const order = await create(page);
+  // Creation commits the URL before the asynchronous server-prop refresh.
+  // Reopen the persisted order before testing the modal's keyboard focus;
+  // otherwise a pending RSC remount can remove its original trigger button.
+  await page.reload();
+  await expect(page.getByText("支付处理中", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "修改票种或数量" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

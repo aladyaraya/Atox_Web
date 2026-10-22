@@ -6,10 +6,11 @@
 
 - 已阅读 AGENTS、PROJECT_STATUS、MODULES、M001 README；检查 auth/server.ts、session.ts、service.ts、schema／contracts、业务用户外键及 M008 authorizeAdmin。阅读已安装 Next 16.4 Route Handlers 指南和官方 Logto 接入、部署、SMTP 文档。
 - 当前电脑无 Docker／Podman，WSL 提示未安装。没有安装系统虚拟化组件，没有声称真实 Logto 已在这台电脑运行。真实部署测试由隔离 Linux CI 执行，结果后续记录在此及 PR。
-- 本地 3 项隔离测试通过：显式开发开关和独立配置、禁用后全路径 404、回调／Host／Origin 拒绝及 Cookie 独立。实验依赖独立 lockfile，安装审计当时 0 已知漏洞；不把这项结果当成所有镜像安全审计。
+- 本地 5 项隔离测试通过：显式开发开关、真实生产启动全路径 404、回调／Host／Origin 拒绝、Cookie 独立及诊断脱敏。实验依赖独立 lockfile，安装审计当时 0 已知漏洞；不把这项结果当成所有镜像安全审计。
 - 认证源码、共享 DB、Drizzle 迁移、真实 `.env.local`、管理员授权未修改。未打开网站数据库执行迁移／绑定；原未提交产品思维导图保留。
 - 首次真实环境验证：Compose 部署／客户端注册／SMTP 配置成功，安全负例通过；注册后的自动跳转被测试误认作仍需点击 Continue，改成等待实际回调完成，未绕过 OIDC／OTP。
-- 主站回归发现已有票务弹窗焦点恢复竞态，补充在仍连接 DOM 时先原生 close 再回焦；只修复兼容性，原 Esc／焦点断言保留，不改认证、权限或票务规则。首次回归 48/49，最终结果另录。
+- 主站首次回归 48/49：票务测试在创建订单后仅等待同步 URL，异步 RSC 刷新可能移除弹窗的原触发按钮。该用例改为重载已持久化订单后再执行原 Esc／焦点断言；没有改票务业务代码或删除／跳过断言。最终回归另录。
+- 双应用注册与 SSO 已实际成功；原生退出表单因 no-referrer 策略发送 Origin:null 被严格同源检查拒绝，改成 same-origin Referrer-Policy，保留 Origin＋CSRF 校验并避免跨来源泄漏回调 URL。未通过接受空 Origin 放宽保护。
 
 ## 真实 Logto CI 验收
 
