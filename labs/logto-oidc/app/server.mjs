@@ -53,7 +53,9 @@ export function createLabApp(config) {
       // origin forms while withholding callback URLs from other origins.
       "Referrer-Policy": "same-origin",
       "Content-Security-Policy":
-        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'" +
+        (config ? " " + config.endpoint : "") +
+        "; frame-ancestors 'none'; base-uri 'none'",
     });
     next();
   });
