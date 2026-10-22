@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { get } from "node:http";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { redact } from "./redacted-reporter.mjs";
 import { enabled, getConfig } from "../app/config.mjs";
 import { createLabApp } from "../app/server.mjs";
 
@@ -16,6 +19,44 @@ const clients = {
   a: { appId: "test-a", appSecret: "not-a-real-client-secret-a" },
   b: { appId: "test-b", appSecret: "not-a-real-client-secret-b" },
 };
+test("Actual startup remains disabled in production despite explicit lab enable", async (t) => {
+  const child = spawn(
+    process.execPath,
+    [fileURLToPath(new URL("../app/start.mjs", import.meta.url)), "a"],
+    {
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        ENABLE_LOGTO_LAB: "true",
+        LOGTO_LAB_ACK: "isolated-loopback-test-only",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  t.after(() => child.kill());
+  await Promise.race([
+    once(child.stdout, "data"),
+    once(child, "exit").then(() => {
+      throw new Error(
+        "Disabled test process did not start; stop any existing lab app on port 3401.",
+      );
+    }),
+  ]);
+  for (const route of [
+    "/health",
+    "/me",
+    "/login",
+    "/callback?code=invalid&state=invalid",
+  ])
+    assert.equal((await fetch("http://127.0.0.1:3401" + route)).status, 404);
+});
+test("Browser diagnostics remove callback query values, authorization and OTPs", () => {
+  const message = redact(
+    "navigation http://127.0.0.1:3401/callback?code=synthetic-value&state=synthetic-state Basic synthetic-credential code 123456",
+  );
+  assert.doesNotMatch(message, /synthetic|123456/);
+  assert.match(message, /callback\?\[redacted\]/);
+});
 async function running(config, fn) {
   const server = createLabApp(config).listen(0, "127.0.0.1");
   await once(server, "listening");

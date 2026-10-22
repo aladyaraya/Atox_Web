@@ -17,7 +17,7 @@ export default class Reporter {
   onTestEnd(test, result) {
     console.log(`[${result.status}] ${test.title}`);
     for (const error of result.errors)
-      console.error(redact(error.message ?? "Test failed"));
+      console.error(redact(error.stack ?? error.message ?? "Test failed"));
   }
   onError(error) {
     console.error(redact(error.message ?? "Test runner failed"));

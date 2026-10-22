@@ -134,16 +134,35 @@ test("Real email verification, same issuer/subject, separate sessions and accura
       .size,
   ).toBe(2);
   await page.goto(a);
-  await page.getByRole("button", { name: "仅退出本应用", exact: true }).click();
+  const [localLogout] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url() === a + "/logout/local" && r.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "仅退出本应用", exact: true }).click(),
+  ]);
+  expect(localLogout.status(), "Local logout POST succeeds").toBe(303);
+  await expect(
+    page.getByRole("link", { name: "邮箱登录", exact: true }),
+  ).toBeVisible();
   expect((await identify(context, a)).status).toBe(401);
   expect((await identify(context, b)).status).toBe(200);
   await page.getByRole("link", { name: "邮箱登录", exact: true }).click();
   await arrive(page, a);
   expect((await identify(context, a)).body.subject).toBe(first.body.subject);
-  await page
-    .getByRole("button", { name: "退出本应用及中央登录状态", exact: true })
-    .click();
+  const [centralLogout] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url() === a + "/logout/central" && r.request().method() === "POST",
+    ),
+    page
+      .getByRole("button", { name: "退出本应用及中央登录状态", exact: true })
+      .click(),
+  ]);
+  expect(centralLogout.status(), "Central logout POST succeeds").toBe(303);
   await arrive(page, a);
+  await expect(
+    page.getByRole("link", { name: "邮箱登录", exact: true }),
+  ).toBeVisible();
   expect((await identify(context, a)).status).toBe(401);
   // Central logout is NOT global local-session revocation.
   expect((await identify(context, b)).status).toBe(200);
