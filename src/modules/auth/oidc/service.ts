@@ -78,18 +78,16 @@ async function record(
   userId: string | null,
   detail: object = {},
 ) {
-  await tx
-    .insert(audit)
-    .values({
-      id: randomUUID(),
-      action,
-      userId,
-      flowId: flow.id,
-      detail: JSON.stringify(detail),
-      createdAt: new Date(),
-    });
+  await tx.insert(audit).values({
+    id: randomUUID(),
+    action,
+    userId,
+    flowId: flow.id,
+    detail: JSON.stringify(detail),
+    createdAt: new Date(),
+  });
 }
-async function receiptFor(tx: Tx, flow: Flow) {
+async function receiptFor(tx: Tx, flow: Flow, browserToken?: string) {
   if (!flow.receiptCipher) throw new OidcError("INVALID_FLOW");
   const receipt = unseal<LoginReceipt>(
     flow.receiptCipher,
@@ -107,6 +105,18 @@ async function receiptFor(tx: Tx, flow: Flow) {
     );
   if (!session || session.userId !== receipt.userId)
     throw new OidcError("INVALID_FLOW");
+  if (browserToken && !match(browserToken, receipt.token)) {
+    const [current] = await tx
+      .select()
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.tokenHash, digest(browserToken)),
+          gt(sessions.expiresAt, new Date()),
+        ),
+      );
+    if (current) throw new OidcError("SESSION_CHANGED", 409);
+  }
   return receipt;
 }
 async function issue(
@@ -131,23 +141,19 @@ async function issue(
     expiresAt: expiresAt.toISOString(),
     returnTo: flow.returnTo,
   };
-  await tx
-    .insert(sessions)
-    .values({
-      id: receipt.sessionId,
-      userId: identity.userId,
-      tokenHash: digest(receipt.token),
-      createdAt: now,
-      expiresAt,
-    });
-  await tx
-    .insert(contexts)
-    .values({
-      sessionId: receipt.sessionId,
-      identityId: identity.id,
-      fingerprint: config.fingerprint,
-      idTokenCipher: seal(proof.idToken, "id-token:" + receipt.sessionId),
-    });
+  await tx.insert(sessions).values({
+    id: receipt.sessionId,
+    userId: identity.userId,
+    tokenHash: digest(receipt.token),
+    createdAt: now,
+    expiresAt,
+  });
+  await tx.insert(contexts).values({
+    sessionId: receipt.sessionId,
+    identityId: identity.id,
+    fingerprint: config.fingerprint,
+    idTokenCipher: seal(proof.idToken, "id-token:" + receipt.sessionId),
+  });
   await tx
     .update(identities)
     .set({ lastAuthenticatedAt: now })
@@ -277,24 +283,22 @@ export async function startOidc(
               eq(flows.status, "authorizing"),
             ),
           );
-      await tx
-        .insert(flows)
-        .values({
-          id,
-          tokenHash: digest(token),
-          purpose,
-          status: "authorizing",
-          fingerprint: config.fingerprint,
-          ipHash: digest(ip),
-          returnTo,
-          nonce,
-          stateHash: "",
-          targetUserId,
-          expectedSubject,
-          initiatorHash,
-          createdAt: now,
-          expiresAt: new Date(now.getTime() + FLOW_SECONDS * 1000),
-        });
+      await tx.insert(flows).values({
+        id,
+        tokenHash: digest(token),
+        purpose,
+        status: "authorizing",
+        fingerprint: config.fingerprint,
+        ipHash: digest(ip),
+        returnTo,
+        nonce,
+        stateHash: "",
+        targetUserId,
+        expectedSubject,
+        initiatorHash,
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + FLOW_SECONDS * 1000),
+      });
     }),
   );
   try {
@@ -455,7 +459,7 @@ export async function finishOidc(
       if (!match(flow.stateHash, digest(url.searchParams.get("state")!)))
         throw new OidcError("CALLBACK_REJECTED");
       if (flow.status === "completed")
-        return { receipt: await receiptFor(tx, flow) };
+        return { receipt: await receiptFor(tx, flow, browserToken) };
       if (
         flow.status !== "authorizing" ||
         !flow.sdkCipher ||
@@ -567,22 +571,20 @@ export async function approveIdentityRecovery(input: {
         .from(approvals)
         .where(eq(approvals.flowId, flow.id));
       if (prior) throw new OidcError("IDENTITY_CONFLICT", 409);
-      await tx
-        .insert(approvals)
-        .values({
-          id: randomUUID(),
-          flowId: flow.id,
-          userId: input.userId,
-          issuer: proof.issuer,
-          subject: proof.subject,
-          caseId: input.caseId,
-          evidenceRef: input.evidenceRef,
-          reviewedBy: input.reviewedBy,
-          createdAt: new Date(),
-          expiresAt: new Date(
-            Math.min(Date.now() + 300_000, flow.expiresAt.getTime()),
-          ),
-        });
+      await tx.insert(approvals).values({
+        id: randomUUID(),
+        flowId: flow.id,
+        userId: input.userId,
+        issuer: proof.issuer,
+        subject: proof.subject,
+        caseId: input.caseId,
+        evidenceRef: input.evidenceRef,
+        reviewedBy: input.reviewedBy,
+        createdAt: new Date(),
+        expiresAt: new Date(
+          Math.min(Date.now() + 300_000, flow.expiresAt.getTime()),
+        ),
+      });
       await record(tx, "identity.recovery_approved", flow, input.userId, {
         caseId: input.caseId,
         evidenceRef: input.evidenceRef,
@@ -600,7 +602,8 @@ export async function confirmIdentityRecovery(
   return write(async () =>
     (await getDb()).transaction(async (tx) => {
       const flow = await flowFor(tx, token);
-      if (flow.status === "completed") return receiptFor(tx, flow);
+      if (flow.status === "completed")
+        return receiptFor(tx, flow, browserToken);
       await sessionGuard(tx, flow, browserToken);
       if (
         flow.status !== "awaiting_approval" ||

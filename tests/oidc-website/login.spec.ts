@@ -25,7 +25,9 @@ async function emailVerify(
   register = true,
 ) {
   if (register) {
-    const link = page.getByRole("link", { name: /create an account|sign up/i });
+    const link = page.getByRole("link", {
+      name: /create(?: an)? account|sign up/i,
+    });
     if (await link.count()) await link.first().click();
   }
   const input = page
@@ -34,7 +36,12 @@ async function emailVerify(
   await expect(input).toBeVisible();
   await input.fill(email);
   const sentAfter = Date.now() - 1000;
-  await page.getByRole("button", { name: /continue|create account/i }).click();
+  await page
+    .getByRole("button", {
+      name: /continue|create(?: an)? account|sign in|register/i,
+    })
+    .first()
+    .click();
   let code = "";
   await expect
     .poll(
@@ -67,7 +74,7 @@ async function emailVerify(
   if ((await inputs.count()) === 1) await inputs.fill(code);
   else for (let i = 0; i < code.length; i++) await inputs.nth(i).fill(code[i]);
   const submit = page.getByRole("button", {
-    name: /continue|verify|create account/i,
+    name: /continue|verify|create(?: an)? account|sign in|register/i,
   });
   if (
     (await submit.count()) &&

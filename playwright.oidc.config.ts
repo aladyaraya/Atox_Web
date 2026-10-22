@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 import path from "node:path";
-const directory = path.resolve(`.data/oidc-sandbox/browser-${Date.now()}`);
+const directory =
+  process.env.OIDC_FIXTURE_DIR ||
+  path.resolve(`.data/oidc-sandbox/browser-${Date.now()}`);
 process.env.OIDC_FIXTURE_DIR = directory;
 export default defineConfig({
   testDir: "./tests/oidc-website",

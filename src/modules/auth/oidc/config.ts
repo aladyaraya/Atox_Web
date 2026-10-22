@@ -53,7 +53,9 @@ export function getOidcConfig(env = process.env): OidcConfig | null {
       throw new Error();
     if (trust === "local-sandbox") {
       const root = path.resolve(".data/oidc-sandbox");
-      const db = path.resolve(env.DB_PATH || ".data/pglite");
+      const db = path.resolve(
+        /* turbopackIgnore: true */ env.DB_PATH || ".data/pglite",
+      );
       if (!local(origin) || !local(endpoint) || !db.startsWith(root + path.sep))
         throw new Error();
     } else if (
