@@ -62,12 +62,8 @@ async function fillCode(page, code) {
     await submit.first().click();
 }
 async function arrive(page, origin) {
-  // Logto may ask for application consent; it must never ask for another OTP.
-  const consent = page.getByRole("button", {
-    name: /authorize|allow|continue/i,
-  });
-  if (!page.url().startsWith(origin) && (await consent.count()))
-    await consent.first().click();
+  // First-party clients return automatically. Do not click a loading OTP
+  // submit button while its successful redirect is still in flight.
   await expect(page).toHaveURL(origin + "/");
 }
 

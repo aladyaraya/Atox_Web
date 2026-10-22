@@ -6,6 +6,8 @@
 
 [项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
 
+新增 [M013 Logto＋OIDC 隔离实验](labs/logto-oidc/README.md)：独立 PostgreSQL、测试邮件与两个 OIDC 应用，依赖和运行目录与主站分开。没有切换当前登录、关联旧账号或执行业务迁移；网站接入与旧账号关联留待 [第二阶段](docs/M013-INTEGRATION.md)。实验需要额外 Docker／Compose，主站仍无需 Docker。
+
 ## 技术与环境
 
 - Next.js App Router、React、TypeScript、Tailwind CSS；服务端 Node runtime。
@@ -35,6 +37,7 @@ npm run dev
 ```text
 src/app/                  页面、API、路由适配；业务逻辑放模块内
 src/modules/              M001—M012（M010/M011 共用发布核）
+labs/logto-oidc/           M013 隔离验证工程；独立依赖、容器和测试数据
 src/components/           共享导航、语言、布局及兼容导出
 src/lib/                  共享 DB、schema 聚合和兼容适配
 drizzle/                  0000—0008 追加迁移、snapshot 和 journal
@@ -61,6 +64,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M009 | 正式材料审核与业务审计 | [material-review](src/modules/material-review/README.md) |
 | M010 / M011 | 结构化活动／首页草稿、预览、发布与下架 | [content-management](src/modules/content-management/README.md) |
 | M012 | 项目详情接入、点赞、一级评论与后台管理 | [project-interaction](src/modules/project-interaction/README.md) |
+| M013 | Logto＋OIDC 第一阶段：隔离验证与接入准备 | [独立实验](labs/logto-oidc/README.md) |
 
 ## 配置
 

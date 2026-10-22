@@ -39,7 +39,13 @@ export function TicketConfirmDialog({
       aria-labelledby={id}
       onCancel={(event) => {
         event.preventDefault();
-        if (!busy) close();
+        if (!busy) {
+          // Restore while the dialog is still attached; native close on a
+          // detached node can race React cleanup and browser focus restoration.
+          event.currentTarget.close();
+          returnFocus.current?.focus();
+          close();
+        }
       }}
     >
       <h2 id={id}>{t.closeTitle}</h2>
@@ -48,7 +54,11 @@ export function TicketConfirmDialog({
         <button
           className="tk-button tk-secondary"
           disabled={busy}
-          onClick={close}
+          onClick={() => {
+            ref.current?.close();
+            returnFocus.current?.focus();
+            close();
+          }}
           autoFocus
         >
           {t.keepOrder}

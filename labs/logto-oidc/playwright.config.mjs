@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 20_000 },
   outputDir: "./.data/browser-results",
-  reporter: "list",
+  reporter: "./tests/redacted-reporter.mjs",
   use: { trace: "off", screenshot: "off", video: "off" },
   webServer: ["a", "b"].map((id) => ({
     command: `node app/start.mjs ${id}`,

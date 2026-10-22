@@ -1,5 +1,9 @@
 # 模块登记与整合索引
 
+## M013 · Logto＋OIDC 隔离验证（2026-10-22）
+
+独立实验代码位于 `labs/logto-oidc/`，版本 1.0.0；固定 Logto／PostgreSQL／Mailpit、两套独立客户端／会话、官方授权码＋PKCE 和专用 CI。主站未接入，没有新增业务表或迁移，不改默认认证、外键和管理员角色。当前机器无 Docker／WSL，必须区分本机隔离测试与真实容器 CI，实际结果见 [验收](M013-VALIDATION.md)。[模块说明](../labs/logto-oidc/README.md) 记录接口、配置和责任；[接入设计](M013-INTEGRATION.md) 列出第二阶段改动与验收，旧账号不得按邮箱自动合并，开发邮件不构成正式所有权证明。
+
 ## M012 当前接入（2026-10-22）
 
 项目详情／点赞／一级评论／后台处理已实现，M006 当前 1.1.0；M001 增加公开昵称的兼容服务，M008 增加评论管理权限，均不改旧认证契约。历史段落中的“互动未实现”以此更新为准。真实投稿／发布、回复／收藏与最终整合仍另行安排。接口与限制见 [M012 模块](../src/modules/project-interaction/README.md)，验证见 [M012 验收](M012-VALIDATION.md)。
@@ -26,6 +30,7 @@ M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolve
 | M010 | 活动管理与发布 | 1.0.0 · 结构化发布基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M011 | 官网内容管理 | 1.0.0 · 结构化内容基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M012 | 项目详情与互动 | 1.0.0 · 点赞、评论及管理 | `src/modules/project-interaction/` | [模块说明](../src/modules/project-interaction/README.md) |
+| M013 | Logto＋OIDC 第一阶段 | 1.0.0 · 隔离验证与接入准备 | `labs/logto-oidc/` | [模块说明](../labs/logto-oidc/README.md) |
 
 后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
 
