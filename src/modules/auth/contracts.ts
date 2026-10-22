@@ -7,6 +7,7 @@ export type AuthErrorCode =
   | "TOO_MANY_ATTEMPTS"
   | "RATE_LIMITED"
   | "MAIL_DISABLED"
+  | "OIDC_REQUIRED"
   | "FORBIDDEN"
   | "INVALID_REQUEST"
   | "INTERNAL_ERROR";

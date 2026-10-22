@@ -1,5 +1,9 @@
 # M001 · 邮箱认证模块
 
+## M014 · 官网 OIDC 兼容增量
+
+新增内部 [oidc](oidc/README.md)，官方 SDK 验证 Logto 并映射原 users.id，业务仍经 server.ts 使用原 AuthUser。0009 五表追加，不改旧模型／外键。未关联邮箱会话兼容，关联后撤销旧会话并拒绝开发 OTP，新增 OIDC_REQUIRED 错误码。仅开发显式开启；`npm run oidc:preview` 使用 3104／独立数据，不改真实 .env.local。同邮箱不合并，独立旧账号证据＋新鲜认证＋明确确认才绑定。生产始终关闭。下文 M013 是历史基线。
+
 ## M013 接入准备（2026-10-22，尚未切换）
 
 Logto／OIDC 仅在 [独立实验](../../../labs/logto-oidc/README.md) 中验证，不新增本模块运行依赖或修改当前会话／认证接口。未来 SDK 与身份映射应放在本模块内部，其他业务继续经 server.ts 取得相同本地 AuthUser。保留 users.id、邮箱非空唯一和 M008 的本地授权；不将 Logto sub 或 roles 直接交给业务模块。

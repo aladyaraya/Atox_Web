@@ -4,6 +4,18 @@ test("Production disables development mail and protects account routes", async (
   request,
 }) => {
   expect((await request.get("/dev/mail")).status()).toBe(404);
+  for (const endpoint of [
+    "/account/security",
+    "/auth/oidc/complete",
+    "/api/auth/oidc/pending",
+    "/api/auth/oidc/callback",
+    "/api/account/identity",
+  ])
+    expect((await request.get(endpoint)).status()).toBe(404);
+  for (const endpoint of ["start", "confirm", "cancel", "logout"])
+    expect(
+      (await request.post("/api/auth/oidc/" + endpoint, { data: {} })).status(),
+    ).toBe(404);
   const login = await request.get("/login");
   expect(login.status()).toBe(200);
   expect(await login.text()).not.toContain('href="/dev/mail"');

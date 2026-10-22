@@ -13,6 +13,8 @@ import { createDevMail, isDevMailEnabled } from "./mail";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
+import { externalIdentities, oidcSessionContexts } from "./oidc/schema";
+import { getOidcConfig } from "./oidc/config";
 import { AUTH_POLICY, SESSION_SECONDS } from "./policy";
 import type { AuthLanguage, AuthUser, SendCodeResponse } from "./contracts";
 export { AuthError } from "./errors";
@@ -168,6 +170,15 @@ export async function verifyCode(input: string, code: string) {
           ),
         };
       }
+      // A dev-inbox code must never bypass an identity that has been linked
+      // using trusted recovery. This remains blocked when OIDC is disabled.
+      const [linked] = await tx
+        .select({ id: externalIdentities.id })
+        .from(users)
+        .innerJoin(externalIdentities, eq(users.id, externalIdentities.userId))
+        .where(eq(users.email, email))
+        .limit(1);
+      if (linked) return { error: new AuthError("OIDC_REQUIRED", 409) };
       await tx
         .update(challenges)
         .set({ consumedAt: now })
@@ -208,9 +219,18 @@ export async function getUserByToken(
   const [result] = await (
     await getDb()
   )
-    .select({ id: users.id, email: users.email, createdAt: users.createdAt })
+    .select({
+      id: users.id,
+      email: users.email,
+      createdAt: users.createdAt,
+      oidcFingerprint: oidcSessionContexts.fingerprint,
+    })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .leftJoin(
+      oidcSessionContexts,
+      eq(sessions.id, oidcSessionContexts.sessionId),
+    )
     .where(
       and(
         eq(sessions.tokenHash, hashToken(token)),
@@ -218,7 +238,15 @@ export async function getUserByToken(
       ),
     )
     .limit(1);
-  return result ?? null;
+  if (!result) return null;
+  if (result.oidcFingerprint) {
+    try {
+      if (getOidcConfig()?.fingerprint !== result.oidcFingerprint) return null;
+    } catch {
+      return null;
+    }
+  }
+  return { id: result.id, email: result.email, createdAt: result.createdAt };
 }
 
 /** Read-only integration lookup. Never creates an account or grants privileges. */

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAccountProfile } from "@/modules/auth/server";
 import { AccountView } from "@/modules/auth/components/account-view";
+import { oidcOptions } from "@/modules/auth/oidc/server";
 export const dynamic = "force-dynamic";
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -10,6 +11,7 @@ export default async function AccountPage() {
       email={user.email}
       createdAt={user.createdAt.toISOString()}
       profile={await getAccountProfile(user)}
+      identityEnabled={oidcOptions().enabled}
     />
   );
 }

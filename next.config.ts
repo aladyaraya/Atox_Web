@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   devIndicators: false,
   serverExternalPackages: ["@electric-sql/pglite"],
+  // Callback query strings contain single-use authorization codes.
+  logging: { incomingRequests: { ignore: [/\/api\/auth\/oidc\/callback/] } },
   async headers() {
     return [
       {

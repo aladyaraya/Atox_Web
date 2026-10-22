@@ -64,6 +64,13 @@
       "when": 1792602206197,
       "tag": "0008_familiar_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792649918225,
+      "tag": "0009_left_thunderbolt",
+      "breakpoints": true
     }
   ]
 }
