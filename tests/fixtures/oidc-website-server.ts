@@ -51,14 +51,12 @@ async function main() {
     .from(devMails)
     .where(eq(devMails.email, email));
   const owner = await verifyCode(email, mail.body.match(/\b\d{6}\b/)![0]);
-  await db
-    .insert(accountProfiles)
-    .values({
-      userId: owner.user.id,
-      nickname: "Original owner",
-      revision: 1,
-      updatedAt: new Date(),
-    });
+  await db.insert(accountProfiles).values({
+    userId: owner.user.id,
+    nickname: "Original owner",
+    revision: 1,
+    updatedAt: new Date(),
+  });
   await bootstrapAdministrator(email, "isolated-oidc-browser-case");
   await closeDb();
   process.env.ENABLE_DEV_MAIL = "false";
@@ -86,10 +84,21 @@ async function main() {
       ],
       {
         env: process.env,
-        stdio: "ignore",
+        stdio: ["ignore", "ignore", "pipe"],
         detached: process.platform !== "win32",
       },
     );
+    // Forward only our fixed-stage, code-only diagnostics, never arbitrary
+    // server output which can contain request URLs or private form values.
+    child.stderr?.on("data", (chunk) => {
+      for (const line of String(chunk).split(/\r?\n/))
+        if (
+          /^\[M014\] (Provider verification rejected: [a-z]+ [a-zA-Z0-9_.]+|Website callback rejected: [A-Z_]+)$/.test(
+            line.trim(),
+          )
+        )
+          console.error(line.trim());
+    });
     child.on("exit", () => {
       if (!stopping) process.exitCode = 1;
     });

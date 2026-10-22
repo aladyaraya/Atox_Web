@@ -96,10 +96,14 @@ export async function verifyAuthorization(
   nonce: string,
   freshSince?: Date,
 ): Promise<VerifiedIdentity> {
+  let stage = "initialization";
   try {
     const { sdk } = await client(config, storage);
+    stage = "metadata";
     await pin(sdk, config);
+    stage = "exchange";
     await sdk.handleSignInCallback(callback);
+    stage = "claims";
     const claims = await sdk.getIdTokenClaims();
     const token = await sdk.getIdToken();
     if (
@@ -129,6 +133,16 @@ export async function verifyAuthorization(
       authenticatedAt,
     };
   } catch (error) {
+    const candidate =
+      error && typeof error === "object" && "code" in error
+        ? String(error.code)
+        : "unknown";
+    if (process.env.NODE_ENV === "development")
+      console.warn(
+        "[M014] Provider verification rejected:",
+        stage,
+        /^[a-zA-Z0-9_.]{1,64}$/.test(candidate) ? candidate : "unknown",
+      );
     if (error instanceof OidcError) throw error;
     throw new OidcError("CALLBACK_REJECTED");
   }

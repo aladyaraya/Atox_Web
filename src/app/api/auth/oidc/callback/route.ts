@@ -33,6 +33,8 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     const code = error instanceof OidcError ? error.code : "CALLBACK_REJECTED";
+    if (process.env.NODE_ENV === "development")
+      console.warn("[M014] Website callback rejected:", code);
     return oidcRedirect(
       origin + "/auth/oidc/complete?error=" + encodeURIComponent(code),
     );

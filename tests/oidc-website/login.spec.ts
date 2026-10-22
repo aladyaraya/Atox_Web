@@ -88,6 +88,17 @@ async function emailVerify(
     (await submit.first().isEnabled())
   )
     await submit.first().click();
+  await expect
+    .poll(() => new URL(page.url()).origin, {
+      message: "Provider returns to website",
+    })
+    .toBe(origin);
+  const error = new URL(page.url()).searchParams.get("error");
+  if (error)
+    throw new Error(
+      "Website rejected callback: " +
+        (/^[A-Z_]{1,50}$/.test(error) ? error : "unknown"),
+    );
 }
 async function control(
   request: APIRequestContext,
@@ -280,6 +291,23 @@ test("forged callbacks, foreign origins, disabled legacy delivery and browser su
       })
     ).status(),
   ).toBe(503);
+  const start = await request.post("/api/auth/oidc/start", {
+    headers: { Origin: origin },
+    data: { purpose: "login", next: "https://attacker.invalid" },
+  });
+  expect(start.status()).toBe(200);
+  const authorization = new URL((await start.json()).url);
+  expect(authorization.searchParams.get("redirect_uri")).toBe(
+    origin + "/api/auth/oidc/callback",
+  );
+  expect(authorization.searchParams.get("code_challenge_method")).toBe("S256");
+  expect(
+    JSON.stringify(await (await request.get("/api/auth/oidc/pending")).json()),
+  ).toContain('"returnTo":"/account"');
+  await request.post("/api/auth/oidc/cancel", {
+    headers: { Origin: origin },
+    data: {},
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login");
   await expect(page.getByRole("button", { name: /使用 Logto/ })).toBeVisible();

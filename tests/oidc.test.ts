@@ -89,23 +89,21 @@ async function flow(
   const db = await getDb(),
     token = opaque(),
     id = randomUUID();
-  await db
-    .insert(oidcFlows)
-    .values({
-      id,
-      tokenHash: digest(token),
-      purpose,
-      status: "exchanging",
-      fingerprint: requireOidcConfig().fingerprint,
-      ipHash: opaque(),
-      returnTo: "/events/demo/materials",
-      nonce: opaque(),
-      stateHash: digest("fixture-state"),
-      targetUserId,
-      initiatorHash,
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 600_000),
-    });
+  await db.insert(oidcFlows).values({
+    id,
+    tokenHash: digest(token),
+    purpose,
+    status: "exchanging",
+    fingerprint: requireOidcConfig().fingerprint,
+    ipHash: opaque(),
+    returnTo: "/events/demo/materials",
+    nonce: opaque(),
+    stateHash: digest("fixture-state"),
+    targetUserId,
+    initiatorHash,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 600_000),
+  });
   return { id, token };
 }
 async function oldAccount() {
@@ -114,23 +112,19 @@ async function oldAccount() {
     email = id + "@example.test",
     token = opaque();
   await db.insert(users).values({ id, email, createdAt: new Date() });
-  await db
-    .insert(sessions)
-    .values({
-      id: randomUUID(),
-      userId: id,
-      tokenHash: digest(token),
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 86400_000),
-    });
-  await db
-    .insert(accountProfiles)
-    .values({
-      userId: id,
-      nickname: "Preserved owner",
-      revision: 1,
-      updatedAt: new Date(),
-    });
+  await db.insert(sessions).values({
+    id: randomUUID(),
+    userId: id,
+    tokenHash: digest(token),
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 86400_000),
+  });
+  await db.insert(accountProfiles).values({
+    userId: id,
+    nickname: "Preserved owner",
+    revision: 1,
+    updatedAt: new Date(),
+  });
   return { id, email, token };
 }
 async function approve(f: { id: string }, userId: string) {
@@ -241,6 +235,11 @@ test("link requires fresh authentication plus independent approval; atomic confi
   ]);
   assert.equal(results[0].userId, old.id);
   assert.equal(results[0].token, results[1].token);
+  const switched = await oldAccount();
+  await assert.rejects(
+    confirmIdentityRecovery(f.token, switched.token),
+    rejects("SESSION_CHANGED"),
+  );
   assert.equal(await getUserByToken(old.token), null);
   assert.equal((await getUserByToken(results[0].token))?.id, old.id);
   const db = await getDb(),
@@ -440,7 +439,7 @@ test("invalid callback, cross-client state, cancellation, expiry and fingerprint
     delete process.env.OIDC_SESSION_VERSION;
   }
 });
-test("server start rate records cannot be bypassed by cancelled flows and sanitize external next", async () => {
+test("server start rate records cannot be bypassed by cancelled flows", async () => {
   const db = await getDb(),
     ip = "rate-case";
   for (let i = 0; i < 6; i++) {

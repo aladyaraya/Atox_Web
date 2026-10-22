@@ -5,7 +5,11 @@ export function redact(message) {
     .replace(/https?:\/\/[^\s"'<>]+/g, (value) => {
       try {
         const url = new URL(value);
-        return url.origin + url.pathname + (url.search ? "?[redacted]" : "");
+        return (
+          url.origin +
+          url.pathname.replace(/\/oidc\/auth\/[^/]+/, "/oidc/auth/[redacted]") +
+          (url.search ? "?[redacted]" : "")
+        );
       } catch {
         return "[redacted-url]";
       }
