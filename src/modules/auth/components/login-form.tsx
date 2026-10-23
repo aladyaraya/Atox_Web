@@ -6,12 +6,18 @@ import { errors } from "@/lib/i18n";
 import { useLanguage } from "@/components/language-provider";
 import { Header, Footer } from "@/components/site-shell";
 import { AuthClientError, sendLoginCode, verifyLoginCode } from "../client";
+import { OidcLogin } from "../oidc/components/oidc-login";
+import { oidcMessage } from "../oidc/messages";
 export function LoginForm({
   devMailEnabled,
   returnTo = "/account",
+  oidc = { enabled: false, sandbox: false },
+  centralError = false,
 }: {
   devMailEnabled: boolean;
   returnTo?: string;
+  oidc?: { enabled: boolean; sandbox: boolean };
+  centralError?: boolean;
 }) {
   const { language, t } = useLanguage();
   const router = useRouter();
@@ -75,100 +81,115 @@ export function LoginForm({
           <div className="eyebrow purple-text">START SOMETHING GREAT</div>
           <h1>{t.welcome}</h1>
           <p className="muted auth-intro">{t.loginIntro}</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void request(step === "email" ? "send-code" : "verify-code");
-            }}
-          >
-            {step === "email" ? (
-              <div className="field">
-                <label htmlFor="email">{t.email}</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  required
-                  disabled={busy}
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <>
-                <div className="sent-box">
-                  <span>{t.sent}</span>
-                  <strong>{email}</strong>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setStep("email");
-                      setCode("");
-                      setError("");
-                    }}
-                  >
-                    {t.change} ↗
-                  </button>
-                </div>
+          {centralError && (
+            <p role="alert" className="error">
+              {oidcMessage("CENTRAL_UNAVAILABLE", language)}
+            </p>
+          )}
+          {oidc.enabled && (
+            <OidcLogin returnTo={returnTo} sandbox={oidc.sandbox} />
+          )}
+          {devMailEnabled && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void request(step === "email" ? "send-code" : "verify-code");
+              }}
+            >
+              {step === "email" ? (
                 <div className="field">
-                  <label htmlFor="code">{t.code}</label>
+                  <label htmlFor="email">{t.email}</label>
                   <input
-                    className="code-input"
-                    id="code"
-                    value={code}
-                    onChange={(e) =>
-                      setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
-                    minLength={6}
-                    maxLength={6}
-                    placeholder="000000"
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    placeholder="you@example.com"
                     required
                     disabled={busy}
                     autoFocus
                   />
                 </div>
-              </>
-            )}
-            {error && (
-              <p className="error" role="alert">
-                {error === "NETWORK"
-                  ? t.network
-                  : errors[language][error] || errors[language].INTERNAL_ERROR}
-              </p>
-            )}
-            <button
-              className="button primary full"
-              disabled={busy || (step === "email" && remaining > 0)}
-              type="submit"
-            >
-              {busy
-                ? step === "email"
-                  ? t.sending
-                  : t.verifying
-                : step === "email"
-                  ? remaining > 0
-                    ? `${remaining}${t.seconds}`
-                    : t.send
-                  : t.verify}
-              <span>↗</span>
-            </button>
-            {step === "code" && (
+              ) : (
+                <>
+                  <div className="sent-box">
+                    <span>{t.sent}</span>
+                    <strong>{email}</strong>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setStep("email");
+                        setCode("");
+                        setError("");
+                      }}
+                    >
+                      {t.change} ↗
+                    </button>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="code">{t.code}</label>
+                    <input
+                      className="code-input"
+                      id="code"
+                      value={code}
+                      onChange={(e) =>
+                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      minLength={6}
+                      maxLength={6}
+                      placeholder="000000"
+                      required
+                      disabled={busy}
+                      autoFocus
+                    />
+                  </div>
+                </>
+              )}
+              {error && (
+                <p className="error" role="alert">
+                  {error === "NETWORK"
+                    ? t.network
+                    : error === "OIDC_REQUIRED"
+                      ? language === "zh"
+                        ? "此账号已关联统一身份，请使用 Logto 登录。"
+                        : "This account uses a linked identity. Please sign in with Logto."
+                      : errors[language][error] ||
+                        errors[language].INTERNAL_ERROR}
+                </p>
+              )}
               <button
-                type="button"
-                className="resend"
-                disabled={busy || remaining > 0}
-                onClick={() => void request("send-code")}
+                className="button primary full"
+                disabled={busy || (step === "email" && remaining > 0)}
+                type="submit"
               >
-                {remaining > 0 ? `${remaining}${t.seconds}` : t.resend}
+                {busy
+                  ? step === "email"
+                    ? t.sending
+                    : t.verifying
+                  : step === "email"
+                    ? remaining > 0
+                      ? `${remaining}${t.seconds}`
+                      : t.send
+                    : t.verify}
+                <span>↗</span>
               </button>
-            )}
-          </form>
+              {step === "code" && (
+                <button
+                  type="button"
+                  className="resend"
+                  disabled={busy || remaining > 0}
+                  onClick={() => void request("send-code")}
+                >
+                  {remaining > 0 ? `${remaining}${t.seconds}` : t.resend}
+                </button>
+              )}
+            </form>
+          )}
           <p className="security-note">◇ {t.safe}</p>
           {devMailEnabled && (
             <aside className="dev-note">

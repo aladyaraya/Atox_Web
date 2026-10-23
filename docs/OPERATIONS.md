@@ -31,6 +31,8 @@ getDb 初始化自动迁移；人工 npm run db:migrate 读取 .env.local。结�
 
 ## 维护命令
 
+M014 的 `oidc:preview` 只启动 3104／独立沙箱。旧账号关联审批 `oidc:approve-recovery` 必须先停止同 DB 网站，独立核验所有权、核对流程及目标 UUID、显式加载正确隔离或可信 OIDC 环境，再由原浏览器确认；不自动读取真实 .env.local。配置／操作细节见 [M014 README](../src/modules/auth/oidc/README.md)。关闭功能仅撤销 OIDC 接入可用性，不重新开放已关联账号的开发 OTP；不要通过解绑／删表当回退。
+
 - events:cleanup-files：超过 24 小时的孤儿文件；保护所有活动正式材料及草稿有效引用。
 - ticketing:maintain：开发模拟支付查单、关单、预留处理；未知状态保留且继续核对，不删除财务历史。必须启用开发预览。
 - admin:bootstrap：首位超级管理员一次性绑定已验证账号，停服执行，记录本机操作者；同目标重复不恢复禁用或提权。之后用授权后台管理。

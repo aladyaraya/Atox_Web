@@ -1,0 +1,43 @@
+name: M014 website Logto integration
+on:
+  push:
+    branches: ["feat/m014-website-logto"]
+  pull_request:
+    paths: ["src/modules/auth/**", "src/app/api/auth/**", "src/app/auth/**", "tests/oidc-website/**", "tests/fixtures/oidc-website-server.ts", "playwright.oidc.config.ts", "labs/logto-oidc/**", ".github/workflows/oidc-website.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: m014-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  website-oidc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            labs/logto-oidc/package-lock.json
+      - run: npm ci
+      - run: npm ci --ignore-scripts
+        working-directory: labs/logto-oidc
+      - run: npm run init
+        working-directory: labs/logto-oidc
+      - run: npm run up
+        working-directory: labs/logto-oidc
+      - run: npm run provision
+        working-directory: labs/logto-oidc
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:oidc-website
+      - name: Stop isolated services without deleting volumes
+        if: always()
+        run: npm run down
+        working-directory: labs/logto-oidc
+      # No credentials, emails, authenticated traces or runtime files uploaded.

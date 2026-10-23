@@ -1,4 +1,5 @@
 /** Shared schema registry. Add future domain schemas here without editing auth. */
+export { externalIdentities, oidcFlows, identityRecoveryApprovals, oidcSessionContexts, identityAudit } from "../modules/auth/oidc/schema";
 export { accountProfiles } from "../modules/auth/profile-schema";
 export {
   projectLikes,

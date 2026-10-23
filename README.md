@@ -6,7 +6,7 @@
 
 [项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
 
-新增 [M013 Logto＋OIDC 隔离实验](labs/logto-oidc/README.md)：独立 PostgreSQL、测试邮件与两个 OIDC 应用，依赖和运行目录与主站分开。没有切换当前登录、关联旧账号或执行业务迁移；网站接入与旧账号关联留待 [第二阶段](docs/M013-INTEGRATION.md)。实验需要额外 Docker／Compose，主站仍无需 Docker。
+新增 [M013 隔离实验](labs/logto-oidc/README.md) 与 [M014 官网接入](src/modules/auth/oidc/README.md)：官方 SDK 经 M001 映射本地身份，旧账号需独立证据，不凭同邮箱合并。`npm run oidc:preview` 在 3104 用独立测试数据，不切换原真实配置。Logto 需要 Docker／Compose、独立 PostgreSQL／Mailpit，普通网站开发仍无需 Docker。本阶段生产关闭。
 
 ## 技术与环境
 
@@ -40,7 +40,7 @@ src/modules/              M001—M012（M010/M011 共用发布核）
 labs/logto-oidc/           M013 隔离验证工程；独立依赖、容器和测试数据
 src/components/           共享导航、语言、布局及兼容导出
 src/lib/                  共享 DB、schema 聚合和兼容适配
-drizzle/                  0000—0008 追加迁移、snapshot 和 journal
+drizzle/                  0000—0009 追加迁移、snapshot 和 journal
 public/                   原创 SVG 等公开资产；禁止放私有附件
 tests/                    服务／规则、隔离浏览器、生产禁用测试
 scripts/                  迁移、受控初始化、维护和提交扫描
@@ -65,6 +65,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M010 / M011 | 结构化活动／首页草稿、预览、发布与下架 | [content-management](src/modules/content-management/README.md) |
 | M012 | 项目详情接入、点赞、一级评论与后台管理 | [project-interaction](src/modules/project-interaction/README.md) |
 | M013 | Logto＋OIDC 第一阶段：隔离验证与接入准备 | [独立实验](labs/logto-oidc/README.md) |
+| M014 | 官网 Logto 与原账号映射 | [M001 内部适配](src/modules/auth/oidc/README.md) |
 
 ## 配置
 

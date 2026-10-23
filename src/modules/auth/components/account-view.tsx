@@ -11,10 +11,12 @@ export function AccountView({
   email,
   createdAt,
   profile,
+  identityEnabled = false,
 }: {
   email: string;
   createdAt: string;
   profile: AccountProfileDto;
+  identityEnabled?: boolean;
 }) {
   const { language, t } = useLanguage();
   const router = useRouter();
@@ -66,6 +68,16 @@ export function AccountView({
           </button>
         </section>
         <NicknameEditor initial={profile} />
+        {identityEnabled && (
+          <p>
+            <Link className="button secondary" href="/account/security">
+              {language === "zh"
+                ? "登录与账号安全"
+                : "Sign-in & account security"}{" "}
+              ↗
+            </Link>
+          </p>
+        )}
         <p style={{ marginBottom: 24 }}>
           <Link className="button primary" href="/events/demo">
             {language === "zh"

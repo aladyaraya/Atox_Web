@@ -140,6 +140,34 @@ try {
         "Existing local client does not match its exact callback contract.",
       );
   }
+  // A third, separately registered client for the M001 website sandbox.
+  // It cannot redirect into the real website on port 3000.
+  if (!clients.website) {
+    const created = await api("/applications", "POST", {
+      name: "M014 isolated website",
+      type: "Traditional",
+      oidcClientMetadata: {
+        redirectUris: ["http://127.0.0.1:3104/api/auth/oidc/callback"],
+        postLogoutRedirectUris: ["http://127.0.0.1:3104/login"],
+      },
+    });
+    const secret = await api(`/applications/${created.id}/secrets`, "POST", {
+      name: "M014 local sandbox",
+    });
+    clients.website = { appId: created.id, appSecret: secret.value };
+    await writeFile(clientsFile, JSON.stringify(clients, null, 2) + "\n", {
+      mode: 0o600,
+    });
+  }
+  const website = await api("/applications/" + clients.website.appId);
+  if (
+    website.type !== "Traditional" ||
+    JSON.stringify(website.oidcClientMetadata.redirectUris) !==
+      JSON.stringify(["http://127.0.0.1:3104/api/auth/oidc/callback"]) ||
+    JSON.stringify(website.oidcClientMetadata.postLogoutRedirectUris) !==
+      JSON.stringify(["http://127.0.0.1:3104/login"])
+  )
+    throw new Error("Website client callback contract mismatch.");
   const connectors = await api("/connectors");
   const smtp = connectors.find(
     (c) => c.connectorId === "simple-mail-transfer-protocol",
