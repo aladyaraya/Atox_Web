@@ -1,5 +1,9 @@
 # 模块登记与整合索引
 
+## M012 当前接入（2026-10-22）
+
+项目详情／点赞／一级评论／后台处理已实现，M006 当前 1.1.0；M001 增加公开昵称的兼容服务，M008 增加评论管理权限，均不改旧认证契约。历史段落中的“互动未实现”以此更新为准。真实投稿／发布、回复／收藏与最终整合仍另行安排。接口与限制见 [M012 模块](../src/modules/project-interaction/README.md)，验证见 [M012 验收](M012-VALIDATION.md)。
+
 ## 当前维护约定（2026-10-10）
 
 当前实现包含下表全部模块；M010/M011 共用代码但职责独立。各 README 顶部维护摘要描述实际当前接口和依赖，后续旧版本段落仅作为留存轨迹。所有版本仍为本地开发／演示基线，不代表完整生产上线。
@@ -15,12 +19,13 @@ M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolve
 | M003 | 模拟购票与我的订单       | 1.2.0 · 统一界面与精简结算 | `src/modules/ticketing/`           | [模块说明](../src/modules/ticketing/README.md)           |
 | M004 | 活动展板与多活动接入     | 1.0.0 · 已验收本地开发基线 | `src/modules/event-board/`         | [模块说明](../src/modules/event-board/README.md)         |
 | M005 | 官网长页首页             | 1.0.0 · 已验收本地开发基线 | `src/modules/homepage/`            | [模块说明](../src/modules/homepage/README.md)            |
-| M006 | 项目展区与投稿接入预留   | 1.0.0 · 已验收演示展区     | `src/modules/project-board/`       | [模块说明](../src/modules/project-board/README.md)       |
+| M006 | 项目展区与投稿接入预留   | 1.1.0 · 排序与详情接入     | `src/modules/project-board/`       | [模块说明](../src/modules/project-board/README.md)       |
 | M007 | 选手中心与组队           | 1.0.0 · 本地验证通过       | `src/modules/participant-center/`  | [模块说明](../src/modules/participant-center/README.md)  |
 | M008 | 管理员权限与官方后台入口 | 1.0.0 · 本地开发基线       | `src/modules/admin/`               | [模块说明](../src/modules/admin/README.md)               |
 | M009 | 选手正式材料审核 | 1.0.0 · 本地验证通过 | `src/modules/material-review/` | [模块说明](../src/modules/material-review/README.md) |
 | M010 | 活动管理与发布 | 1.0.0 · 结构化发布基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M011 | 官网内容管理 | 1.0.0 · 结构化内容基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
+| M012 | 项目详情与互动 | 1.0.0 · 点赞、评论及管理 | `src/modules/project-interaction/` | [模块说明](../src/modules/project-interaction/README.md) |
 
 后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
 

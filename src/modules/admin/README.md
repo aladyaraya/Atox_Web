@@ -1,5 +1,9 @@
 # M008 管理员权限与后台入口
 
+## M012 评论管理权限兼容增量（2026-10-22）
+
+super_admin/operator 均新增 admin:project-comments；现有启用角色直接获得该业务权限，不重新初始化管理员或修改会话。后台侧栏增加 /admin/project-comments，管理接口属于 M012，每次请求／事务均重新鉴权，隐藏／恢复与 business_audit_logs 同事务。原角色管理和权限审计仍仅超级管理员；不将业务权限写入 Cookie。接口及验收见 M012 README 与 docs/M012-VALIDATION.md。
+
 ## 当前维护摘要（2026-10-10）
 
 - 职责：独立角色与实时权限、授权／停用和权限审计。

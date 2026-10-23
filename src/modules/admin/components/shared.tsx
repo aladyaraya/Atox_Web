@@ -65,7 +65,7 @@ export function AdminShell({
   identity: AdminIdentity;
   children: React.ReactNode;
 }) {
-  const { t } = useAdminText();
+  const { t, language } = useAdminText();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -80,6 +80,11 @@ export function AdminShell({
     return () => document.removeEventListener("keydown", close);
   }, []);
   const links = [["/admin", t.dashboard]];
+  if (identity.permissions.includes("admin:project-comments"))
+    links.push([
+      "/admin/project-comments",
+      language === "zh" ? "项目评论" : "Project comments",
+    ]);
   if (identity.permissions.includes("admin:materials"))
     links.push(["/admin/materials", t.materials]);
   if (identity.permissions.includes("admin:content"))

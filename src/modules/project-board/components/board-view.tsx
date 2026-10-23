@@ -12,6 +12,7 @@ import type {
 import { fetchProjects } from "../client";
 import { normalizeFilters, parseFilters, projectQuery } from "../rules";
 import { projectCopy } from "../copy";
+import { LikeButton } from "@/modules/project-interaction/components/like-button";
 
 function ProjectCover({ project }: { project: ProjectCard }) {
   const [failed, setFailed] = useState(false);
@@ -36,108 +37,6 @@ function ProjectCover({ project }: { project: ProjectCard }) {
   );
 }
 
-function ProjectPreview({
-  project,
-  categories,
-  onClose,
-  trigger,
-}: {
-  project: ProjectCard;
-  categories: ProjectBoardDto["options"]["categories"];
-  onClose: () => void;
-  trigger: HTMLElement | null;
-}) {
-  const { language } = useLanguage();
-  const t = projectCopy[language];
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const element = dialog.current!;
-    const previousOverflow = document.body.style.overflow;
-    element.showModal();
-    document.body.style.overflow = "hidden";
-    return () => {
-      element.close();
-      document.body.style.overflow = previousOverflow;
-      trigger?.focus({ preventScroll: true });
-    };
-  }, [trigger]);
-  return (
-    <dialog
-      ref={dialog}
-      className="pb-dialog"
-      aria-labelledby="pb-preview-title"
-      onKeyDown={(event) => {
-        if (event.key !== "Tab") return;
-        const focusable = Array.from(
-          event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not([disabled]), a[href], [tabindex="0"]',
-          ),
-        );
-        const first = focusable[0];
-        const last = focusable.at(-1);
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        const bounds = event.currentTarget.getBoundingClientRect();
-        if (
-          event.clientX < bounds.left ||
-          event.clientX > bounds.right ||
-          event.clientY < bounds.top ||
-          event.clientY > bounds.bottom
-        )
-          onClose();
-      }}
-    >
-      <div className="pb-dialog-top">
-        <span>{t.demo}</span>
-        <button type="button" onClick={onClose} aria-label={t.close}>
-          ×
-        </button>
-      </div>
-      <ProjectCover project={project} />
-      <div className="pb-dialog-body">
-        <span className="pb-category">
-          {categories.find((c) => c.id === project.category)?.name[language]}
-        </span>
-        <h2 id="pb-preview-title">{project.name[language]}</h2>
-        <p className="pb-full-intro">{project.introduction[language]}</p>
-        <dl>
-          <dt>{t.creator}</dt>
-          <dd>{project.creator[language]}</dd>
-          <dt>{t.event}</dt>
-          <dd>
-            {project.event ? (
-              <Link href={project.event.href}>
-                {project.event.name[language]} ↗
-              </Link>
-            ) : (
-              t.independent
-            )}
-          </dd>
-        </dl>
-        <p className="pb-field-label">{t.tags}</p>
-        <div className="pb-tags">
-          {project.tags.map((tag) => (
-            <span key={tag.en}>{tag[language]}</span>
-          ))}
-        </div>
-        <p className="pb-preview-note">{t.previewNote}</p>
-      </div>
-    </dialog>
-  );
-}
-
 export function ProjectBoardView({
   initial,
   signedIn,
@@ -152,10 +51,6 @@ export function ProjectBoardView({
   const [search, setSearch] = useState(initial.filters.q);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
-  const [selected, setSelected] = useState<{
-    project: ProjectCard;
-    trigger: HTMLElement;
-  } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const load = useCallback(async (filters: ProjectFilters, history = true) => {
     const next = normalizeFilters(filters);
@@ -190,7 +85,6 @@ export function ProjectBoardView({
     function restore() {
       const filters = parseFilters(new URLSearchParams(window.location.search));
       setSearch(filters.q);
-      setSelected(null);
       void load(filters, false);
     }
     window.addEventListener("popstate", restore);
@@ -319,7 +213,26 @@ export function ProjectBoardView({
                   {t.reset} ×
                 </button>
               )}
-              <span>{t.order}</span>
+              <label className="pi-sort">
+                {language === "zh" ? "排序" : "Sort"}
+                <select
+                  aria-label={language === "zh" ? "项目排序" : "Project sort"}
+                  value={active.sort}
+                  onChange={(e) =>
+                    void load({ ...active, sort: e.target.value, page: "1" })
+                  }
+                >
+                  <option value="newest">
+                    {language === "zh" ? "最新发布" : "Newest first"}
+                  </option>
+                  <option value="oldest">
+                    {language === "zh" ? "最早发布" : "Oldest first"}
+                  </option>
+                  <option value="likes">
+                    {language === "zh" ? "点赞最多" : "Most liked"}
+                  </option>
+                </select>
+              </label>
             </div>
           </div>
           {pending ? (
@@ -340,14 +253,15 @@ export function ProjectBoardView({
             <div className="pb-grid">
               {data.projects.map((project) => (
                 <article className="pb-card" key={project.id}>
-                  <button
-                    type="button"
+                  <Link
                     className="pb-card-button"
-                    aria-label={`${t.preview}: ${project.name[language]}`}
-                    aria-haspopup="dialog"
-                    onClick={(event) => {
-                      setSelected({ project, trigger: event.currentTarget });
-                    }}
+                    aria-label={t.preview + ": " + project.name[language]}
+                    href={
+                      "/projects/" +
+                      project.id +
+                      "?returnTo=" +
+                      encodeURIComponent("/projects" + projectQuery(active))
+                    }
                   >
                     <ProjectCover project={project} />
                     <div className="pb-card-body">
@@ -378,7 +292,41 @@ export function ProjectBoardView({
                         <span aria-hidden="true">↗</span>
                       </div>
                     </div>
-                  </button>
+                  </Link>
+                  <div className="pi-card-actions">
+                    <LikeButton
+                      projectId={project.id}
+                      stats={project.stats}
+                      signedIn={signedIn}
+                      next={
+                        "/projects/" +
+                        project.id +
+                        "?returnTo=" +
+                        encodeURIComponent("/projects" + projectQuery(active)) +
+                        "#comments"
+                      }
+                      onChange={(stats) =>
+                        setData((current) => ({
+                          ...current,
+                          projects: current.projects.map((p) =>
+                            p.id === project.id ? { ...p, stats } : p,
+                          ),
+                        }))
+                      }
+                    />
+                    <Link
+                      href={
+                        "/projects/" +
+                        project.id +
+                        "?returnTo=" +
+                        encodeURIComponent("/projects" + projectQuery(active)) +
+                        "#comments"
+                      }
+                    >
+                      {language === "zh" ? "评论" : "Comments"}{" "}
+                      {project.stats.commentCount}
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>
@@ -432,14 +380,6 @@ export function ProjectBoardView({
         </div>
       </main>
       <Footer />
-      {selected && (
-        <ProjectPreview
-          project={selected.project}
-          categories={data.options.categories}
-          trigger={selected.trigger}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </div>
   );
 }

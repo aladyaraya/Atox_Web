@@ -1,0 +1,45 @@
+.nickname-editor {
+  margin: 28px 0;
+  border: 1px solid #453951;
+  padding: 24px;
+  border-radius: 12px;
+  background: #19151f;
+}
+.nickname-editor h2 {
+  font-size: 23px;
+  margin: 0 0 12px;
+}
+.nickname-editor p {
+  color: #c0b5ce;
+  line-height: 1.7;
+}
+.nickname-editor form {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.nickname-editor label {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-width: min(220px, 100%);
+}
+.nickname-editor input {
+  background: #110e17;
+  color: #eee8f3;
+  border: 1px solid #61506f;
+  padding: 12px;
+  border-radius: 7px;
+  font: inherit;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .nickname-editor {
+    padding: 18px;
+  }
+  .nickname-editor form .button {
+    width: 100%;
+  }
+}

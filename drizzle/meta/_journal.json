@@ -57,6 +57,13 @@
       "when": 1791565180953,
       "tag": "0007_common_umar",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792602206197,
+      "tag": "0008_familiar_power_man",
+      "breakpoints": true
     }
   ]
 }

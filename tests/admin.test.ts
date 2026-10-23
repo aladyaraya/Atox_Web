@@ -94,6 +94,7 @@ test("Operator has business permissions without role management; ordinary users 
     "admin:access",
     "admin:materials",
     "admin:content",
+    "admin:project-comments",
   ]);
   assert.equal(await service.getAdministrator(ordinary), null);
   await assert.rejects(
@@ -213,6 +214,7 @@ test("Queued mutation rechecks actor permission after downgrade; existing identi
     "admin:access",
     "admin:materials",
     "admin:content",
+    "admin:project-comments",
   ]);
   assert.equal(await service.getAdministrator(target), null);
 });

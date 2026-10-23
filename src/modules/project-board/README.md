@@ -1,5 +1,13 @@
 # M006 · 项目展区与投稿接入预留
 
+## 1.1.0 当前升级（2026-10-22）
+
+卡片已进入 /projects/[projectId] 独立详情，原基础弹层不再使用。详情读取 getProject(id,user?)，配置长说明／媒体来自 details.ts；展示原创双语演示内容，体验／代码／视频链接未提供时隐藏。项目可见性由 visibility.ts 与 M010 发布源共同检查，未知／下架为 404。
+
+getProjects(filters,user?) 及 GET /api/projects 增加 sort=newest/oldest/likes（未知回退 newest），完整搜索／分类／活动交集排序后每页 9 项；点赞同值按发布时间降序再 ID。卡片 stats={likeCount,commentCount,likedByMe} 由 M012 持久化数据读取，不写入内容配置。前端点赞仅更新本卡片，下次查询再重排。查询与返回展区继续保留 URL 条件。
+
+M012 拥有点赞／评论／管理服务与表；M001 提供统一公开昵称，M008 提供评论管理权限。投稿页依然只是预留。详细接口、验证与限制见 [M012](../project-interaction/README.md) 和 [验收](../../../docs/M012-VALIDATION.md)。下列 1.0 弹层及“互动未实现”为原交付历史。
+
 ## 当前维护摘要（2026-10-10）
 
 - 职责：12 个原创双语演示项目、筛选分页、弹层和投稿说明。

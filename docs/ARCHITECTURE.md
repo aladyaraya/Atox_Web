@@ -1,13 +1,15 @@
 # 当前架构与维护边界
 
-更新时间：2026-10-10（Asia/Shanghai）。单 Next.js 应用、一个共享迁移历史、一个进程内 PGlite 连接，不拆分仓库。M001—M011 的具体契约见 MODULES 和模块 README。
+更新时间：2026-10-22（Asia/Shanghai）。单 Next.js 应用、一个共享迁移历史、一个进程内 PGlite 连接，不拆分仓库。M001—M012 的具体契约见 MODULES 和模块 README。
+
+M012 新增真实点赞、一级评论及管理服务，M006 读取互动计数与本人状态，并提供详情和三种排序。M001 以独立 account_profiles 管理公开昵称，旧认证用户 DTO 不变；M008 新增业务权限，评论隐藏／恢复与共享业务审计原子保存。0008 追加三表，不改共享连接和旧数据。详情仍为原创演示内容，不代表已接真实投稿／公开发布。
 
 ## 分层
 
 - src/app：路由、Node runtime、Cookie／HTTP 和页面适配，调用模块服务。
 - src/modules：业务规则、DTO、公开 server/client 入口和组件。浏览器只引用 browser-safe 类型与客户端入口，不引入服务端秘密。
 - src/lib/db.ts：持久化单例、getDb 自动迁移和 serializeDatabaseWrite。排队整个事务，不在队列内递归排队；渠道网络调用不占写锁，落库时再校验状态。
-- src/lib/schema.ts：聚合模型，关联 users.id；drizzle 保存 0000—0007 SQL、snapshot 和 journal，禁止修改已应用历史。
+- src/lib/schema.ts：聚合模型，关联 users.id；drizzle 保存 0000—0008 SQL、snapshot 和 journal，禁止修改已应用历史。
 - src/components：共享导航、语言与布局。部分 lib/components 老文件是兼容导出，新调用遵循模块文档。
 
 ## 依赖方向
@@ -26,4 +28,4 @@ content-management 的 store 为发布读取核；生产路由用异步 resolveE
 
 ## 部署与实现空白
 
-当前支持本地 Node 单进程持久化。真实邮件、生产 PostgreSQL／对象存储、多进程限流与事务、真实收款、项目投稿发布／互动和最终整合未实现。没有 Docker 配置、生产自动部署或基础设施声明。运行方式和备份约束见 OPERATIONS；CI 只在隔离数据上验收。
+当前支持本地 Node 单进程持久化。真实邮件、生产 PostgreSQL／对象存储、多进程限流与事务、真实收款、真实项目投稿发布、回复／收藏和最终整合未实现。没有 Docker 配置、生产自动部署或基础设施声明。运行方式和备份约束见 OPERATIONS；CI 只在隔离数据上验收。

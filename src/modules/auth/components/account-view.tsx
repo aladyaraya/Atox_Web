@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/language-provider";
 import { Header, Footer } from "@/components/site-shell";
 import { logout as signOut } from "../client";
+import { NicknameEditor } from "./nickname-editor";
+import type { AccountProfileDto } from "../profile-contracts";
 export function AccountView({
   email,
   createdAt,
+  profile,
 }: {
   email: string;
   createdAt: string;
+  profile: AccountProfileDto;
 }) {
   const { language, t } = useLanguage();
   const router = useRouter();
@@ -61,6 +65,7 @@ export function AccountView({
             {busy ? t.loggingOut : t.logout} ↗
           </button>
         </section>
+        <NicknameEditor initial={profile} />
         <p style={{ marginBottom: 24 }}>
           <Link className="button primary" href="/events/demo">
             {language === "zh"

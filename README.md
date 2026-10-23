@@ -2,7 +2,7 @@
 
 面向创造者的黑客松活动网站，采用单仓库、模块化 Next.js 全栈结构。临时品牌和活动／项目内容是明确标注的演示数据。当前用于本地开发与验收，尚未生产上线。
 
-已实现邮箱认证、活动展板、个人报名与私有材料、选手组队、官网首页、演示项目展区及管理员权限／材料审核／活动和首页发布。票务仅为开发模式模拟支付；项目投稿页仅预留入口，完整项目详情、互动、真实投稿发布、真实收款、飞书同步、团队统一提交和最终全站整合尚未完成。
+已实现邮箱认证与公开昵称、活动展板、个人报名与私有材料、选手组队、官网首页、演示项目展区与完整详情、点赞／评论及管理员权限／材料审核／评论管理／活动和首页发布。票务仅为开发模式模拟支付；项目投稿页仅预留入口，真实投稿发布、回复／收藏、真实收款、飞书同步、团队统一提交和最终全站整合尚未完成。
 
 [项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
 
@@ -34,10 +34,10 @@ npm run dev
 
 ```text
 src/app/                  页面、API、路由适配；业务逻辑放模块内
-src/modules/              M001—M011（M010/M011 共用发布核）
+src/modules/              M001—M012（M010/M011 共用发布核）
 src/components/           共享导航、语言、布局及兼容导出
 src/lib/                  共享 DB、schema 聚合和兼容适配
-drizzle/                  0000—0007 追加迁移、snapshot 和 journal
+drizzle/                  0000—0008 追加迁移、snapshot 和 journal
 public/                   原创 SVG 等公开资产；禁止放私有附件
 tests/                    服务／规则、隔离浏览器、生产禁用测试
 scripts/                  迁移、受控初始化、维护和提交扫描
@@ -60,6 +60,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M008 | 管理员授权与权限审计 | [admin](src/modules/admin/README.md) |
 | M009 | 正式材料审核与业务审计 | [material-review](src/modules/material-review/README.md) |
 | M010 / M011 | 结构化活动／首页草稿、预览、发布与下架 | [content-management](src/modules/content-management/README.md) |
+| M012 | 项目详情接入、点赞、一级评论与后台管理 | [project-interaction](src/modules/project-interaction/README.md) |
 
 ## 配置
 

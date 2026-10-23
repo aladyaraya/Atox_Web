@@ -46,6 +46,7 @@ export function TicketCheckout(props: {
   const { catalog, user, selection, orderId } = props;
   const { language, t } = useTicketText();
   const router = useRouter();
+  const changeButton = useRef<HTMLButtonElement>(null);
   const {
     answers,
     quote,
@@ -417,6 +418,7 @@ export function TicketCheckout(props: {
                 <button
                   className="tk-text-button"
                   disabled={busy || creationUncertain}
+                  ref={changeButton}
                   onClick={() => void changeSelection()}
                 >
                   {t.change} ↗
@@ -459,6 +461,7 @@ export function TicketCheckout(props: {
       )}
       {confirmOpen && (
         <TicketConfirmDialog
+          returnFocus={changeButton}
           busy={busy}
           close={() => setConfirmOpen(false)}
           confirm={() => void closeAndChange()}

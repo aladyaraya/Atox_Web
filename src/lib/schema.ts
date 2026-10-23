@@ -1,4 +1,9 @@
 /** Shared schema registry. Add future domain schemas here without editing auth. */
+export { accountProfiles } from "../modules/auth/profile-schema";
+export {
+  projectLikes,
+  projectComments,
+} from "../modules/project-interaction/schema";
 export { managedContent } from "../modules/content-management/schema";
 export {
   administrators,

@@ -1,4 +1,11 @@
 import "server-only";
+export {
+  getAccountProfile,
+  updateNickname,
+  getPublicNicknames,
+  ProfileError,
+} from "./profile";
+export type { AccountProfileDto, NicknameInput } from "./profile-contracts";
 
 /** Supported server integration surface for other business modules. */
 export { getCurrentUser } from "./session";
