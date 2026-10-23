@@ -4,7 +4,7 @@ export const projectCopy = {
     title: "每一个想法，",
     accent: "都有下一种可能。",
     intro: "发现正在被创造的可能。从一个小问题出发，遇见不同的作品与视角。",
-    demoNote: "演示展区 · 当前作品及创作者均为原创示例",
+    demoNote: "项目展区 · 标记为演示的作品及创作者为原创示例",
     submit: "提交项目",
     events: "探索活动",
     search: "搜索项目",
@@ -48,7 +48,8 @@ export const projectCopy = {
     accent: "another possibility.",
     intro:
       "Discover what people could create. Start with a small question and explore different works and perspectives.",
-    demoNote: "DEMO GALLERY · All projects and creators are original examples",
+    demoNote:
+      "PROJECT GALLERY · Demo-labelled projects and creators are original examples",
     submit: "Submit a project",
     events: "Explore events",
     search: "Search projects",

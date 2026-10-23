@@ -99,7 +99,14 @@ export function ProjectDetail({
         </Link>
         <header className="pi-detail-header">
           <p className="pb-eyebrow">
-            {zh ? "原创演示项目" : "ORIGINAL DEMO PROJECT"} / {p.id}
+            {p.demo
+              ? zh
+                ? "原创演示项目"
+                : "ORIGINAL DEMO PROJECT"
+              : zh
+                ? "创作者项目"
+                : "CREATOR PROJECT"}{" "}
+            / {p.id}
           </p>
           <h1>{p.name[language]}</h1>
           <p className="pi-lead">{p.introduction[language]}</p>

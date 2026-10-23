@@ -1,8 +1,14 @@
-import type { LocalizedText, ProjectCard, ProjectCategory } from "./contracts";
+import type {
+  LocalizedText,
+  ProjectCard,
+  ProjectCategory,
+  ProjectDetails,
+} from "./contracts";
 
 export { categories } from "./categories";
 export type ProjectDefinition = Omit<ProjectCard, "event" | "stats"> & {
   published: boolean;
+  details?: ProjectDetails;
 };
 const text = (zh: string, en: string): LocalizedText => ({ zh, en });
 function demo(

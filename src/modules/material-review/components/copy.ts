@@ -1,7 +1,8 @@
 export const reviewCopy = {
   zh: {
-    title: "选手材料审核",
-    introduction: "按活动审阅选手正式提交的材料。审核通过不代表公开发布。",
+    title: "材料审核总表",
+    introduction:
+      "集中查看各活动的正式提交；草稿不计入。点击项目查看材料与审核，审核通过不会公开发布。",
     event: "活动",
     allEvents: "全部活动",
     state: "审核状态",
@@ -51,7 +52,7 @@ export const reviewCopy = {
     confirmTitle: "确认审核决定",
     confirmHelp: "此操作会记录操作人、时间和材料版本；不会公开发布材料。",
     cancel: "取消",
-    saved: "审核决定已保存。",
+    saved: "操作已保存。",
     conflict:
       "材料已被其他人修改或处理。当前输入已保留，提交已锁定；读取最新状态后重新确认。",
     uncertain: "未能确认操作结果，已停止重复提交。请读取最新状态核实后再决定。",
@@ -59,7 +60,8 @@ export const reviewCopy = {
     reloadConfirm:
       "读取最新状态将放弃当前审核输入，并展示最新材料和审核记录。是否继续？",
     checked: "已读取最新材料和审核记录，请重新确认审核决定。",
-    processed: "当前正式提交已处理；本阶段仅审核待审核的正式提交。",
+    processed:
+      "当前正式提交已处理；通过可在审核开放时撤回至待审核，驳回须由选手在原提交期内重提。",
     history: "审核历史",
     historyEmpty: "暂无审核记录。",
     actor: "操作人",
@@ -79,9 +81,9 @@ export const reviewCopy = {
     none: "无",
   },
   en: {
-    title: "Participant material review",
+    title: "Material review table",
     introduction:
-      "Review official participant submissions by event. Approval does not publish a submission.",
+      "Official submissions across events; drafts are excluded. Open a project to review its materials. Approval does not publish a submission.",
     event: "Event",
     allEvents: "All events",
     state: "Review status",
@@ -135,7 +137,7 @@ export const reviewCopy = {
     confirmHelp:
       "This records the reviewer, time and submission version. It does not publish the materials.",
     cancel: "Cancel",
-    saved: "Review decision saved.",
+    saved: "Operation saved.",
     conflict:
       "Someone changed or reviewed this submission. Your input is preserved and submission is locked. Read the latest state and confirm again.",
     uncertain:
@@ -146,7 +148,7 @@ export const reviewCopy = {
     checked:
       "Latest materials and audit records loaded. Confirm your decision again.",
     processed:
-      "This official submission has been reviewed. Only pending official submissions can be reviewed in this phase.",
+      "This submission has been reviewed. Approval can be revoked while review is open; rejected submissions require participant resubmission within the original deadline.",
     history: "Review history",
     historyEmpty: "No review records yet.",
     actor: "Reviewer",

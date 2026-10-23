@@ -80,6 +80,11 @@ export function AdminShell({
     return () => document.removeEventListener("keydown", close);
   }, []);
   const links = [["/admin", t.dashboard]];
+  if (identity.permissions.includes("admin:projects"))
+    links.push([
+      "/admin/projects",
+      language === "zh" ? "项目管理" : "Project management",
+    ]);
   if (identity.permissions.includes("admin:project-comments"))
     links.push([
       "/admin/project-comments",
@@ -145,7 +150,7 @@ export function AdminShell({
   );
 }
 export function Dashboard({ identity }: { identity: AdminIdentity }) {
-  const { t } = useAdminText();
+  const { t, language } = useAdminText();
   return (
     <AdminShell identity={identity}>
       <section className="adm-panel">
@@ -154,6 +159,9 @@ export function Dashboard({ identity }: { identity: AdminIdentity }) {
         <p>{t.intro}</p>
         <p>{t.scope}</p>
         <div className="adm-actions">
+          <Link className="adm-button" href="/admin/projects">
+            {language === "zh" ? "项目管理" : "Project management"} ↗
+          </Link>
           <Link className="adm-button" href="/admin/materials">
             {t.materials} ↗
           </Link>

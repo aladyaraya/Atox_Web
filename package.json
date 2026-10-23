@@ -23,7 +23,8 @@
     "admin:bootstrap": "tsx --env-file=.env.local scripts/admin-bootstrap.ts",
     "oidc:preview": "node scripts/oidc-preview.mjs",
     "oidc:approve-recovery": "cross-env NODE_ENV=development tsx scripts/oidc-approve-recovery.ts",
-    "test:oidc-website": "playwright test --config=playwright.oidc.config.ts"
+    "test:oidc-website": "playwright test --config=playwright.oidc.config.ts",
+    "projects:cleanup-files": "tsx --env-file=.env.local scripts/cleanup-project-files.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

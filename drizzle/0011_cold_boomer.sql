@@ -1,0 +1,6 @@
+ALTER TABLE "material_review_policies" DROP CONSTRAINT "material_review_policy_period_valid";--> statement-breakpoint
+ALTER TABLE "material_review_policies" ALTER COLUMN "opens_at" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "material_review_policies" ALTER COLUMN "closes_at" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "material_review_policies" ADD COLUMN "mode" text DEFAULT 'custom' NOT NULL;--> statement-breakpoint
+ALTER TABLE "material_review_policies" ADD CONSTRAINT "material_review_policy_mode_valid" CHECK ("material_review_policies"."mode" IN ('event','unlimited','custom'));--> statement-breakpoint
+ALTER TABLE "material_review_policies" ADD CONSTRAINT "material_review_policy_period_valid" CHECK (("material_review_policies"."mode" = 'custom' AND "material_review_policies"."opens_at" IS NOT NULL AND "material_review_policies"."closes_at" IS NOT NULL AND "material_review_policies"."opens_at" < "material_review_policies"."closes_at") OR ("material_review_policies"."mode" IN ('event','unlimited') AND "material_review_policies"."opens_at" IS NULL AND "material_review_policies"."closes_at" IS NULL));

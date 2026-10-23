@@ -1,14 +1,16 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/modules/auth/server";
-import { ProjectSubmissionPlaceholder } from "@/modules/project-board/components/board-view";
-import "@/modules/project-board/styles.css";
+import { NewProject } from "@/modules/project-submission/components/owner-list";
+import "@/modules/project-submission/styles.css";
+import "@/modules/admin/styles.css";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
+export const metadata = {
   title: "提交项目 · HACKATHON",
-  description: "项目提交即将开放，未来支持独立创作与活动项目。",
+  description: "填写项目介绍及展示材料，提交官方审核与发布。",
 };
-export default async function SubmitProjectPage() {
+export default async function Page() {
   const user = await getCurrentUser();
-  return <ProjectSubmissionPlaceholder signedIn={Boolean(user)} />;
+  if (!user) redirect("/login?next=%2Fprojects%2Fsubmit");
+  return <NewProject userId={user.id} />;
 }

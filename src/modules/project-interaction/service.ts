@@ -9,7 +9,7 @@ import {
 } from "../auth/profile";
 import { authorizeAdmin, appendBusinessAudit } from "../admin/service";
 import { resolvePublicProject } from "../project-board/visibility";
-import { projectRegistry } from "../project-board/config";
+import { submittedProjects } from "../project-submission/schema";
 import { projectLikes, projectComments } from "./schema";
 import { ProjectInteractionError as E } from "./errors";
 import type {
@@ -232,20 +232,18 @@ export async function addComment(
         throw new E("RATE_LIMITED", 429, retry);
       }
       const commentId = randomUUID();
-      await tx
-        .insert(projectComments)
-        .values({
-          id: commentId,
-          projectId: id,
-          userId: user.id,
-          body,
-          bodyHash,
-          requestId,
-          status: "visible",
-          revision: 1,
-          createdAt: now,
-          updatedAt: now,
-        });
+      await tx.insert(projectComments).values({
+        id: commentId,
+        projectId: id,
+        userId: user.id,
+        body,
+        bodyHash,
+        requestId,
+        status: "visible",
+        revision: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
       return { commentId, status: "visible" };
     }),
   );
@@ -298,6 +296,19 @@ export async function listManagedComments(
   const page = pageNumber(input.page ?? 1),
     db = await getDb();
   await authorizeAdmin(db, user, "admin:project-comments");
+  const projectRegistry = (
+    await db
+      .select({
+        id: submittedProjects.id,
+        live: submittedProjects.live,
+        eventId: submittedProjects.eventId,
+      })
+      .from(submittedProjects)
+  ).map((p) => ({
+    id: p.id,
+    name: p.live?.name ?? { zh: p.id, en: p.id },
+    eventId: p.live?.eventId ?? p.eventId,
+  }));
   if (input.status && !["visible", "hidden", "deleted"].includes(input.status))
     throw new E("INVALID_INPUT");
   if (input.projectId && !projectRegistry.some((p) => p.id === input.projectId))
@@ -397,7 +408,12 @@ export async function moderateComment(
         action: "project_comment." + v.action,
         resourceType: "project_comment",
         resourceId: commentId,
-        eventId: projectRegistry.find((p) => p.id === row.projectId)?.eventId,
+        eventId: (
+          await tx
+            .select({ eventId: submittedProjects.eventId })
+            .from(submittedProjects)
+            .where(eq(submittedProjects.id, row.projectId))
+        )[0]?.eventId,
         before: {
           projectId: row.projectId,
           status: row.status,

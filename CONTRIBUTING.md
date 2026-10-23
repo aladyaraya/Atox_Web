@@ -4,7 +4,7 @@
 
 先读 AGENTS.md、docs/PROJECT_STATUS.md、docs/MODULES.md 和目标模块 README。修改 Next.js 代码前查当前安装包 `node_modules/next/dist/docs/`，不依赖旧版本惯例。通过 `npm ci` 保持 lockfile 一致；Node 24 与 CI 对齐。新成员使用自己的 `.env.local`、数据库和验证邮箱，不复制已有用户数据。
 
-一项需求一个分支。默认从 main 创建 `feat/mNNN-description`、`fix/description`、`docs/description` 或 `chore/description`；同文件多人修改前协商归属。先检查 `git status`，不丢弃他人未提交内容，不使用强制推送或 reset --hard 处理冲突。Git 身份使用自己的 name/email（可用 GitHub noreply），不提交自动生成账号或密钥。
+一项需求一个分支。默认从最新 main 创建 `codex/<task>`，也支持团队约定的 `feat/mNNN-description`、`fix/description`、`docs/description` 或 `chore/description`；同文件多人修改前协商归属。先检查 `git status`，不丢弃他人未提交内容，不使用强制推送或 reset --hard 处理冲突。Git 身份使用自己的 name/email（可用 GitHub noreply），不提交自动生成账号或密钥。
 
 ## 提交和 PR
 

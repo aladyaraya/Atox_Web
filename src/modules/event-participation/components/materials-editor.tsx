@@ -188,6 +188,13 @@ export function MaterialsEditor({
       ) : (
         <>
           <Status data={data} />
+          {data.reviewNotice === "approval_revoked" && (
+            <p className="ev-notice" role="status">
+              {language === "zh"
+                ? "待审核，原通过结果已撤回。请查看下方撤回说明；重新提交仍遵守活动原截止时间。"
+                : "Pending: previous approval has been revoked. Read the feedback below; the original submission deadline still applies."}
+            </p>
+          )}
           {dirty && (
             <p className="ev-notice" role="status">
               {t.unsavedDraft}

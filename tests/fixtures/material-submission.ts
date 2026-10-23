@@ -10,8 +10,10 @@ import type {
 export async function seedMaterialSubmission(
   client: APIRequestContext,
   name: string,
+  eventId = "demo",
 ) {
-  const currentResponse = await client.get("/api/events/demo/materials");
+  const base = `/api/events/${encodeURIComponent(eventId)}`;
+  const currentResponse = await client.get(`${base}/materials`);
   expect(currentResponse.status()).toBe(200);
   const current = (await currentResponse.json()) as MaterialsDto;
   if (current.official) return { material: current, payload: current.official };
@@ -23,7 +25,7 @@ export async function seedMaterialSubmission(
   const pdf = await PDFDocument.create();
   pdf.addPage();
   const document = Buffer.from(await pdf.save());
-  const registration = await client.post("/api/events/demo/registration", {
+  const registration = await client.post(`${base}/registration`, {
     data: {
       displayName: `Review ${name}`,
       role: "developer",
@@ -34,14 +36,14 @@ export async function seedMaterialSubmission(
     },
   });
   expect(registration.status()).toBe(200);
-  const cover = await client.post("/api/events/demo/files", {
+  const cover = await client.post(`${base}/files`, {
     multipart: {
       purpose: "cover",
       file: { name: "review-cover.png", mimeType: "image/png", buffer: image },
     },
   });
   expect(cover.status()).toBe(200);
-  const attachment = await client.post("/api/events/demo/files", {
+  const attachment = await client.post(`${base}/files`, {
     multipart: {
       purpose: "document",
       file: {
@@ -67,11 +69,11 @@ export async function seedMaterialSubmission(
     usageAuthorized: true,
     publicDisplay: false,
   };
-  const draft = await client.put("/api/events/demo/materials/draft", {
+  const draft = await client.put(`${base}/materials/draft`, {
     data: { revision: current.revision, payload },
   });
   expect(draft.status()).toBe(200);
-  const submit = await client.post("/api/events/demo/materials/submit", {
+  const submit = await client.post(`${base}/materials/submit`, {
     data: { revision: (await draft.json()).revision },
   });
   expect(submit.status()).toBe(200);

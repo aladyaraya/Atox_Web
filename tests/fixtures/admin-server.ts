@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { getDb, closeDb } from "../../src/lib/db";
 import { sendCode, verifyCode } from "../../src/modules/auth/service";
 import { devMails, sendEvents } from "../../src/lib/schema";
+import { openFixtureReview } from "./review-policy";
 import {
   bootstrapAdministrator,
   grantAdministrator,
@@ -35,6 +36,9 @@ async function main() {
       "material-normal",
       "material-network",
       "content-normal",
+      "project-author",
+      "project-other",
+      "project-network",
       "other-super",
       ...Array.from({ length: 21 }, (_, i) => `fixture-${i}`),
     ]) {
@@ -62,7 +66,8 @@ async function main() {
         name === "normal" ||
         name === "network" ||
         name.startsWith("material-") ||
-        name === "content-normal"
+        name === "content-normal" ||
+        name.startsWith("project-")
       )
         continue;
       await grantAdministrator(
@@ -74,6 +79,8 @@ async function main() {
       );
     }
     await mkdir(directory, { recursive: true });
+    for (const eventId of ["demo", "upcoming-demo", "past-demo"])
+      await openFixtureReview({ ...superUser, createdAt: new Date() }, eventId);
     await writeFile(fixtureFile, JSON.stringify(identities), { mode: 0o600 });
   } finally {
     await closeDb();

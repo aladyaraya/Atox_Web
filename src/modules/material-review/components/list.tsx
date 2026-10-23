@@ -1,96 +1,90 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { adminRequest, AdminApiError } from "@/modules/admin/client";
-import type { AdminIdentity, AdminPage } from "@/modules/admin/contracts";
+import type { AdminIdentity } from "@/modules/admin/contracts";
 import {
   AccessDenied,
   AdminShell,
   Pagination,
-  dateText,
 } from "@/modules/admin/components/shared";
-import type { MaterialReviewItem, ReviewStatus } from "../contracts";
-import type { ContentRecord } from "@/modules/content-management/contracts";
-import type { EventDefinition } from "@/modules/event-board/contracts";
+import type {
+  MaterialReviewItem,
+  MaterialReviewList,
+  ReviewFilters,
+  ReviewStatus,
+} from "../contracts";
+import { readFilters, reviewQuery } from "../rules";
 import { useReviewText } from "./shared";
-
-export type ReviewEventOption = {
-  id: string;
-  name: { zh: string; en: string };
-};
-export type ListFilters = {
-  eventId: string;
-  status: ReviewStatus | "";
-  page: number;
-};
+import { ReviewWindow, receivedPolicy, useReviewClock } from "./window";
+import { RevokeDialog } from "./revoke";
+export type ListFilters = ReviewFilters;
 export function ReviewList({
   identity,
-  events,
   initial,
 }: {
   identity: AdminIdentity;
-  events: ReviewEventOption[];
   initial: ListFilters;
 }) {
-  const { t, language } = useReviewText();
-  const [filters, setFilters] = useState(initial);
-  const [eventOptions, setEventOptions] = useState(events);
-  const [applied, setApplied] = useState(initial);
-  const [refresh, setRefresh] = useState(0);
-  const [data, setData] = useState<AdminPage<MaterialReviewItem> | null>(null);
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState<unknown>(null);
+  const { t, language } = useReviewText(),
+    zh = language === "zh";
+  const [filters, setFilters] = useState(initial),
+    [applied, setApplied] = useState(initial);
+  const [refresh, setRefresh] = useState(0),
+    [data, setData] = useState<MaterialReviewList | null>(null);
+  const [busy, setBusy] = useState(true),
+    [error, setError] = useState<unknown>(null),
+    [revoke, setRevoke] = useState<MaterialReviewItem | null>(null);
+  const scrollRestored = useRef(false);
+  const apply = useCallback((value: ListFilters) => {
+    setBusy(true);
+    setApplied(value);
+    setFilters(value);
+    const query = reviewQuery(value),
+      path = "/admin/materials" + (query ? `?${query}` : "");
+    if (path !== window.location.pathname + window.location.search)
+      window.history.pushState(null, "", path);
+  }, []);
   useEffect(() => {
-    function restoreFilters() {
-      const query = new URLSearchParams(window.location.search);
-      const rawStatus = query.get("status") ?? "";
-      const rawPage = query.get("page") ?? "1";
-      const restored: ListFilters = {
-        eventId: query.get("eventId") ?? "",
-        status: ["pending", "approved", "rejected"].includes(rawStatus)
-          ? (rawStatus as ReviewStatus)
-          : "",
-        page:
-          /^\d+$/.test(rawPage) && Number(rawPage) <= 1_000_000
-            ? Math.max(1, Number(rawPage))
-            : 1,
-      };
-      setFilters(restored);
-      setApplied(restored);
+    function restore() {
+      const value = readFilters(new URLSearchParams(window.location.search));
+      setFilters(value);
+      setApplied(value);
       setBusy(true);
     }
-    window.addEventListener("popstate", restoreFilters);
-    return () => window.removeEventListener("popstate", restoreFilters);
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
   }, []);
+  useEffect(() => {
+    if ((filters.q ?? "").trim() === (applied.q ?? "").trim()) return;
+    const timer = setTimeout(
+      () => apply({ ...filters, q: filters.q?.trim(), page: 1 }),
+      300,
+    );
+    return () => clearTimeout(timer);
+  }, [filters, applied.q, apply]);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    const query = new URLSearchParams({ page: String(applied.page) });
-    if (applied.eventId) query.set("eventId", applied.eventId);
-    if (applied.status) query.set("status", applied.status);
-    Promise.all([
-      adminRequest<AdminPage<MaterialReviewItem>>(
-        `/materials?${query}`,
-        "GET",
-        undefined,
-        controller.signal,
-      ),
-      adminRequest<{ items: ContentRecord<EventDefinition>[] }>(
-        "/content/events",
-        "GET",
-        undefined,
-        controller.signal,
-      ),
-    ])
-      .then(([value, managed]) => {
+    adminRequest<MaterialReviewList>(
+      `/materials?${reviewQuery(applied)}`,
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then((value) => {
         if (active) {
-          setData(value);
-          setEventOptions(
-            managed.items.map((record) => ({
-              id: record.id,
-              name: record.draft.name,
+          setData({
+            ...value,
+            events: value.events.map((event) => ({
+              ...event,
+              reviewPolicy: receivedPolicy(event.reviewPolicy),
             })),
-          );
+            items: value.items.map((item) => ({
+              ...item,
+              reviewPolicy: receivedPolicy(item.reviewPolicy),
+            })),
+          });
           setError(null);
         }
       })
@@ -100,45 +94,88 @@ export function ReviewList({
       .finally(() => {
         if (active) setBusy(false);
       });
-    const onFocus = () => {
+    function focus() {
       setBusy(true);
       setRefresh((value) => value + 1);
-    };
-    window.addEventListener("focus", onFocus);
+    }
+    window.addEventListener("focus", focus);
     return () => {
       active = false;
       controller.abort();
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", focus);
     };
   }, [applied, refresh]);
+  useEffect(() => {
+    if (!data || busy || scrollRestored.current) return;
+    scrollRestored.current = true;
+    try {
+      const value = sessionStorage.getItem(
+        "m009-scroll:" + reviewQuery(applied),
+      );
+      if (value) {
+        window.scrollTo(0, Number(value));
+        sessionStorage.removeItem("m009-scroll:" + reviewQuery(applied));
+      }
+    } catch {
+      /* Storage is optional. */
+    }
+  }, [data, busy, applied]);
+  const selected = data?.events.find((event) => event.id === applied.eventId);
+  const selectedClock = useReviewClock(selected?.reviewPolicy);
   if (error instanceof AdminApiError && [401, 403].includes(error.status))
     return <AccessDenied expired={error.status === 401} />;
-  function apply(value: ListFilters) {
+  const returnTo =
+    "/admin/materials" +
+    (reviewQuery(applied) ? `?${reviewQuery(applied)}` : "");
+  const href = (item: MaterialReviewItem) =>
+    `/admin/materials/${item.id}?returnTo=${encodeURIComponent(returnTo)}`;
+  const rememberScroll = () => {
+    try {
+      sessionStorage.setItem(
+        "m009-scroll:" + reviewQuery(applied),
+        String(window.scrollY),
+      );
+    } catch {
+      /* optional */
+    }
+  };
+  const dates = (value: string | null, zone: string) =>
+    value
+      ? new Intl.DateTimeFormat(zh ? "zh-CN" : "en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: zone,
+        }).format(new Date(value))
+      : "—";
+  const updated = () => {
     setBusy(true);
-    setApplied(value);
-    setFilters(value);
-    const query = new URLSearchParams();
-    if (value.eventId) query.set("eventId", value.eventId);
-    if (value.status) query.set("status", value.status);
-    if (value.page > 1) query.set("page", String(value.page));
-    window.history.replaceState(
-      null,
-      "",
-      "/admin/materials" + (query.size ? `?${query}` : ""),
+    setRefresh((value) => value + 1);
+  };
+  const tracks = (data?.events ?? [])
+    .filter((event) => !filters.eventId || filters.eventId === event.id)
+    .flatMap((event) =>
+      event.tracks.map((track) => ({
+        value: `${event.id}:${track.id}`,
+        name: `${filters.eventId ? "" : event.name[language] + " · "}${track.name[language]}`,
+      })),
     );
-  }
   return (
     <AdminShell identity={identity}>
       <div className="adm-heading">
         <h1>{t.title}</h1>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            setRefresh((value) => value + 1);
+        <a
+          className="mr-table-jump"
+          href="#material-review-table"
+          onClick={(event) => {
+            event.preventDefault();
+            const table = document.getElementById("material-review-table");
+            table?.focus({ preventScroll: true });
+            table?.scrollIntoView({ block: "start", behavior: "instant" });
           }}
         >
+          {zh ? "查看总表 ↓" : "View table ↓"}
+        </a>
+        <button disabled={busy} onClick={updated}>
           {t.refresh}
         </button>
       </div>
@@ -154,93 +191,337 @@ export function ReviewList({
           {t.event}
           <select
             id="mr-event"
-            value={filters.eventId}
+            value={filters.eventId ?? ""}
             onChange={(event) =>
-              setFilters({ ...filters, eventId: event.target.value })
+              apply({
+                ...filters,
+                eventId: event.target.value || undefined,
+                trackId: undefined,
+                page: 1,
+              })
             }
           >
             <option value="">{t.allEvents}</option>
-            {eventOptions.map((event) => (
+            {data?.events.map((event) => (
               <option key={event.id} value={event.id}>
                 {event.name[language]}
               </option>
             ))}
           </select>
         </label>
+        <label htmlFor="mr-q">
+          {zh ? "搜索项目或提交人" : "Search project or participant"}
+          <input
+            id="mr-q"
+            maxLength={200}
+            value={filters.q ?? ""}
+            onChange={(event) =>
+              setFilters({ ...filters, q: event.target.value })
+            }
+          />
+        </label>
         <label htmlFor="mr-status">
           {t.state}
           <select
             id="mr-status"
-            value={filters.status}
+            value={filters.status ?? ""}
             onChange={(event) =>
-              setFilters({
+              apply({
                 ...filters,
-                status: event.target.value as ListFilters["status"],
+                status: (event.target.value || undefined) as
+                  ReviewStatus | undefined,
+                page: 1,
               })
             }
           >
             <option value="">{t.allStates}</option>
-            {(["pending", "approved", "rejected"] as const).map((state) => (
-              <option key={state} value={state}>
-                {t[state === "approved" ? "accepted" : state]}
+            {(["pending", "approved", "rejected"] as const).map((status) => (
+              <option key={status} value={status}>
+                {t[status === "approved" ? "accepted" : status]}
               </option>
             ))}
           </select>
         </label>
-        <button type="submit" className="adm-button" disabled={busy}>
-          {t.filter}
-        </button>
+        <div className="mr-filter-actions">
+          <button type="submit">{t.filter}</button>
+          <button type="button" onClick={() => apply({ page: 1 })}>
+            {zh ? "清空筛选" : "Clear filters"}
+          </button>
+        </div>
+        <details
+          className="mr-more-filters"
+          open={Boolean(
+            filters.trackId ||
+            filters.coordination ||
+            filters.sort === "oldest",
+          )}
+        >
+          <summary>
+            {zh
+              ? "更多筛选（赛道、协调、排序）"
+              : "More filters (track, coordination, sort)"}
+          </summary>
+          <div className="mr-secondary-filters">
+            <label htmlFor="mr-track">
+              {t.track}
+              <select
+                id="mr-track"
+                value={filters.trackId ?? ""}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    trackId: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">{zh ? "全部赛道" : "All tracks"}</option>
+                {tracks.map((track) => (
+                  <option key={track.value} value={track.value}>
+                    {track.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="mr-coordination">
+              {zh ? "协调情况" : "Coordination"}
+              <select
+                id="mr-coordination"
+                value={filters.coordination ?? ""}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    coordination: (event.target.value ||
+                      undefined) as ReviewFilters["coordination"],
+                  })
+                }
+              >
+                <option value="">{zh ? "全部" : "All"}</option>
+                <option value="required">
+                  {zh ? "待协调" : "Needs coordination"}
+                </option>
+                <option value="none">
+                  {zh ? "无需协调" : "No coordination needed"}
+                </option>
+              </select>
+            </label>
+            <label htmlFor="mr-sort">
+              {zh ? "排序" : "Sort"}
+              <select
+                id="mr-sort"
+                value={filters.sort ?? "newest"}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    sort: event.target.value as ReviewFilters["sort"],
+                  })
+                }
+              >
+                <option value="newest">
+                  {zh ? "最新提交优先" : "Newest first"}
+                </option>
+                <option value="oldest">
+                  {zh ? "最早提交优先" : "Oldest first"}
+                </option>
+              </select>
+            </label>
+          </div>
+        </details>
       </form>
-      {error != null && (
-        <p className="adm-error" role="alert">
-          {error instanceof AdminApiError && error.status === 404
-            ? t.notFound
-            : t.network}
+      {selected ? (
+        <ReviewWindow
+          policy={selected.reviewPolicy}
+          compact
+          edit
+          onSaved={updated}
+        />
+      ) : (
+        <p className="adm-muted">
+          {zh
+            ? "全部活动总览 · 点击项目进入审核；选定活动可调整时间，默认跟随活动起止。"
+            : "All events · Open a project to review it. Select an event to adjust timing; event dates apply by default."}
         </p>
       )}
-      {busy && <p role="status">{t.loading}</p>}
-      {data?.items.length === 0 && <p className="adm-panel">{t.empty}</p>}
-      <div className="adm-records">
-        {data?.items.map((item) => (
-          <article
-            className="adm-panel"
-            key={item.id}
-            data-material-id={item.id}
-          >
-            <div className="adm-heading">
-              <h2>{item.projectName}</h2>
-              <span className="adm-badge">
-                {t[item.status === "approved" ? "accepted" : item.status]}
-              </span>
-            </div>
-            <dl className="adm-details">
-              <dt>{t.event}</dt>
-              <dd>{item.eventName[language]}</dd>
-              <dt>{t.participant}</dt>
-              <dd>
-                {item.registration.displayName} · {item.registration.email}
-              </dd>
-              <dt>{t.submitted}</dt>
-              <dd>
-                {item.submittedAt ? dateText(item.submittedAt, language) : "—"}
-              </dd>
-              <dt>{t.submittedRevision}</dt>
-              <dd>{item.submittedRevision}</dd>
-            </dl>
-            <Link
-              className="adm-button secondary"
-              href={`/admin/materials/${encodeURIComponent(item.id)}`}
-            >
-              {t.review} ↗
-            </Link>
-          </article>
-        ))}
-      </div>
       {data && (
-        <Pagination
-          data={data}
-          busy={busy}
-          change={(page) => apply({ ...applied, page })}
+        <>
+          <div className="mr-stats">
+            {(
+              [
+                ["total", zh ? "正式提交" : "Submitted"],
+                ["pending", t.pending],
+                ["approved", t.accepted],
+                ["rejected", t.rejected],
+                ["coordination", zh ? "待协调" : "Needs coordination"],
+              ] as const
+            ).map(([key, label]) => (
+              <div key={key}>
+                <span>{label}</span>
+                <strong>{data.statistics[key]}</strong>
+              </div>
+            ))}
+          </div>
+          <details className="mr-stat-scope">
+            <summary>{zh ? "统计范围说明" : "Statistics scope"}</summary>
+            <p className="adm-muted">
+              {zh
+                ? "统计应用活动、搜索、赛道和协调条件，不应用审核状态；列表数量应用全部筛选。"
+                : "Statistics apply event, search, track and coordination filters, excluding review status. List count applies every filter."}
+            </p>
+          </details>
+        </>
+      )}
+      {busy && <p role="status">{t.loading}</p>}
+      {error != null && (
+        <div role="alert" className="adm-error">
+          {t.network}
+          <button onClick={updated}>{t.retry}</button>
+        </div>
+      )}
+      <section
+        id="material-review-table"
+        className="mr-table-section"
+        tabIndex={-1}
+        aria-label={zh ? "正式材料记录" : "Official submission records"}
+      >
+        <h2>
+          {zh ? "正式材料记录" : "Official submission records"}
+          {data && (
+            <small>
+              {" "}
+              · {data.total} {zh ? "份" : "matching"}
+            </small>
+          )}
+        </h2>
+        {!busy && !error && data?.items.length === 0 && (
+          <div className="adm-panel">
+            <p>
+              {data.statistics.total === 0 &&
+              !applied.q &&
+              !applied.trackId &&
+              !applied.coordination
+                ? zh
+                  ? "尚无正式提交。选手保存的草稿不会进入审核总表，正式提交后才会显示。"
+                  : "No official submissions yet. Saved drafts appear here only after participants submit them."
+                : zh
+                  ? "当前筛选没有匹配的正式材料，请清空筛选或返回第一页。"
+                  : "No official submissions match. Clear filters or return to page one."}
+            </p>
+            <button onClick={() => apply({ page: 1 })}>
+              {zh ? "查看所有正式材料" : "View all submissions"}
+            </button>
+          </div>
+        )}
+        {data && !error && (
+          <div className="mr-table-wrap" aria-busy={busy}>
+            <table className="mr-table">
+              <caption>
+                {zh
+                  ? "材料审核总表 · 每页 20 份"
+                  : "Material review table · 20 per page"}
+              </caption>
+              <thead>
+                <tr>
+                  {[
+                    zh ? "项目" : "Project",
+                    t.event,
+                    t.participant,
+                    t.track,
+                    t.submittedRevision,
+                    t.state,
+                    zh ? "协调情况" : "Coordination",
+                    zh ? "最近处理" : "Last decision",
+                    zh ? "操作" : "Actions",
+                  ].map((value) => (
+                    <th key={value} scope="col">
+                      {value}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item) => (
+                  <tr key={item.id} data-material-id={item.id}>
+                    <td data-label={zh ? "项目" : "Project"}>
+                      <Link href={href(item)} onClick={rememberScroll}>
+                        {item.projectName}
+                      </Link>
+                      <p className="mr-truncate">{item.tagline}</p>
+                    </td>
+                    <td data-label={t.event}>{item.eventName[language]}</td>
+                    <td data-label={t.participant}>{item.participantName}</td>
+                    <td data-label={t.track}>{item.trackName[language]}</td>
+                    <td data-label={t.submittedRevision}>
+                      {dates(item.submittedAt, item.reviewPolicy.timeZone)}
+                      <small>v{item.submittedRevision}</small>
+                    </td>
+                    <td data-label={t.state}>
+                      <span className="adm-badge">
+                        {
+                          t[
+                            item.status === "approved"
+                              ? "accepted"
+                              : item.status
+                          ]
+                        }
+                      </span>
+                    </td>
+                    <td data-label={zh ? "协调情况" : "Coordination"}>
+                      {item.coordinationRequired
+                        ? zh
+                          ? "待协调"
+                          : "Needs coordination"
+                        : zh
+                          ? "无需协调"
+                          : "No coordination needed"}
+                    </td>
+                    <td data-label={zh ? "最近处理" : "Last decision"}>
+                      {item.recentAction ? (
+                        <>
+                          {item.recentAction.actor.label}
+                          <small>
+                            {dates(
+                              item.recentAction.createdAt,
+                              item.reviewPolicy.timeZone,
+                            )}
+                          </small>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="adm-actions">
+                      <Link href={href(item)} onClick={rememberScroll}>
+                        {t.review}
+                      </Link>
+                      {selected &&
+                        item.status === "approved" &&
+                        selectedClock.state === "open" && (
+                          <button onClick={() => setRevoke(item)}>
+                            {zh ? "撤回通过" : "Revoke approval"}
+                          </button>
+                        )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {data && (
+          <Pagination
+            data={data}
+            busy={busy}
+            change={(page) => apply({ ...applied, page })}
+          />
+        )}
+      </section>
+      {revoke && (
+        <RevokeDialog
+          item={revoke}
+          close={() => setRevoke(null)}
+          onSaved={() => {
+            setRevoke(null);
+            updated();
+          }}
         />
       )}
     </AdminShell>

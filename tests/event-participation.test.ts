@@ -1,5 +1,6 @@
 import { before, beforeEach, after, afterEach, test } from "node:test";
 import assert from "node:assert/strict";
+import { openFixtureReview } from "./fixtures/review-policy";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -57,6 +58,7 @@ before(async () => {
   document.addPage();
   pdf = Buffer.from(await document.save());
   reviewer = await createUser("reviewer@example.com");
+  await openFixtureReview(reviewer);
 });
 beforeEach(() => {
   const opens = new Date(Date.now() - 3_600_000).toISOString();

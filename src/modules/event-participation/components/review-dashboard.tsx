@@ -3,6 +3,10 @@ import { useState } from "react";
 import type { ReviewItem, ReviewInput } from "../contracts";
 import { EventApiError } from "../client";
 import {
+  useReviewClock,
+  windowNames,
+} from "@/modules/material-review/components/window";
+import {
   dateText,
   errorText,
   EventShell,
@@ -18,6 +22,8 @@ function ReviewCard({
   onSaved: () => Promise<ReviewItem[] | null>;
 }) {
   const { language, t, eventConfig, eventRequest } = useEventText();
+  const { state: reviewState } = useReviewClock(item.reviewPolicy);
+  const reviewOpen = reviewState === "open";
   const [binding, setBinding] = useState({
     revision: item.revision,
     submittedRevision: item.submittedRevision,
@@ -71,7 +77,7 @@ function ReviewCard({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (stale || busy || success) return;
+    if (stale || busy || success || !reviewOpen) return;
     setBusy(true);
     setError("");
     try {
@@ -106,6 +112,11 @@ function ReviewCard({
         <span className="ev-email">{item.registration.email}</span>
       </div>
       <Status data={item} />
+      {!reviewOpen && (
+        <p className="ev-notice">
+          {windowNames[reviewState][language === "zh" ? 0 : 1]}
+        </p>
+      )}
       {item.submittedAt && (
         <p className="ev-help">
           {t.submissionDate}:{" "}
@@ -124,7 +135,13 @@ function ReviewCard({
       {(item.status !== "processed" || (stale && dirty)) && (
         <form className="ev-form" onSubmit={submit}>
           <fieldset
-            disabled={busy || stale || success || item.status === "processed"}
+            disabled={
+              busy ||
+              stale ||
+              success ||
+              item.status === "processed" ||
+              !reviewOpen
+            }
           >
             <label htmlFor={`review-public-${item.id}`}>
               {t.publicNote}

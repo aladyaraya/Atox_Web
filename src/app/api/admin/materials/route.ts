@@ -9,9 +9,26 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     if (
       [...params.keys()].some(
-        (key) => !["page", "eventId", "status"].includes(key),
+        (key) =>
+          ![
+            "page",
+            "eventId",
+            "status",
+            "q",
+            "trackId",
+            "coordination",
+            "sort",
+          ].includes(key),
       ) ||
-      ["page", "eventId", "status"].some((key) => params.getAll(key).length > 1)
+      [
+        "page",
+        "eventId",
+        "status",
+        "q",
+        "trackId",
+        "coordination",
+        "sort",
+      ].some((key) => params.getAll(key).length > 1)
     )
       throw new MaterialReviewError("INVALID_INPUT");
     const rawPage = params.get("page") ?? "1";
@@ -22,6 +39,12 @@ export async function GET(request: Request) {
         page: Number(rawPage),
         eventId: params.get("eventId") || undefined,
         status: (params.get("status") || undefined) as ReviewStatus | undefined,
+        q: params.get("q") || undefined,
+        trackId: params.get("trackId") || undefined,
+        coordination: (params.get("coordination") || undefined) as
+          "required" | "none" | undefined,
+        sort: (params.get("sort") || undefined) as
+          "newest" | "oldest" | undefined,
       }),
     );
   });

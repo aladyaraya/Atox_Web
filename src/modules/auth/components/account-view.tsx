@@ -105,10 +105,12 @@ export function AccountView({
                   {language === "zh" ? "进入演示活动" : "Open demo event"} ↗
                 </Link>
               ) : (
-                <>
-                  <p>{t.pending}</p>
-                  <span className="status">{t.soon}</span>
-                </>
+                <Link href="/account/projects">
+                  {language === "zh"
+                    ? "我的项目 · 投稿与审核"
+                    : "My projects · Submissions and review"}{" "}
+                  ↗
+                </Link>
               )}
             </section>
           ))}

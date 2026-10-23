@@ -28,6 +28,7 @@ import type { EventDefinition } from "../event-board/contracts";
 import { EventError } from "./errors";
 import { authorizeAdmin } from "../admin/service";
 import { decideMaterialInTransaction } from "../material-review/service";
+import { readReviewPolicy } from "../material-review/policy";
 
 type Database = Awaited<ReturnType<typeof getDb>>;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -318,6 +319,7 @@ export function buildEventService(
       status: material?.status ?? "not_submitted",
       result: material?.result ?? null,
       publicNote: material?.publicNote ?? null,
+      reviewNotice: material?.reviewNotice ?? null,
       submittedAt: material?.submittedAt?.toISOString() ?? null,
       processedAt: material?.processedAt?.toISOString() ?? null,
       assets: assets.map(assetDto),
@@ -519,7 +521,7 @@ export function buildEventService(
             status: "pending",
             result: null,
             publicNote: null,
-            internalNote: null,
+            reviewNotice: null,
             processedBy: null,
             processedAt: null,
             submittedAt: new Date(),
@@ -575,6 +577,7 @@ export function buildEventService(
         ),
       )
       .orderBy(desc(eventMaterials.submittedAt));
+    const reviewPolicy = await readReviewPolicy(db, eventConfig.id);
     return Promise.all(
       rows.map(async ({ material, registration, email }) => {
         const ids = materialReferences(material.official);
@@ -592,6 +595,7 @@ export function buildEventService(
           : [];
         return {
           id: material.id,
+          reviewPolicy,
           official: material.official,
           revision: material.revision,
           submittedRevision: material.submittedRevision,
