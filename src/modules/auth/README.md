@@ -1,5 +1,11 @@
 # M001 · 邮箱认证模块
 
+## M013 接入准备（2026-10-22，尚未切换）
+
+Logto／OIDC 仅在 [独立实验](../../../labs/logto-oidc/README.md) 中验证，不新增本模块运行依赖或修改当前会话／认证接口。未来 SDK 与身份映射应放在本模块内部，其他业务继续经 server.ts 取得相同本地 AuthUser。保留 users.id、邮箱非空唯一和 M008 的本地授权；不将 Logto sub 或 roles 直接交给业务模块。
+
+旧 verifyCode 按邮箱 upsert 只属于既有邮箱登录流程，不能复用于 OIDC 自动合并。开发验证码、开发邮箱和现有开发会话不是正式旧账号所有权证据；绑定、映射迁移及可信重新验证留到 [第二阶段](../../../docs/M013-INTEGRATION.md)。本轮没有修改此模块源代码或数据。
+
 ## 统一公开昵称兼容增量（2026-10-22）
 
 新增 profile-schema.ts/account_profiles，不修改 users、验证码、会话及旧认证 DTO。server.ts 公开 getAccountProfile(user)、updateNickname(user,input)、getPublicNicknames(ids,reader?)；后者仅供服务端公开昵称投影，不提供按用户 ID 查询资料的公开 HTTP 接口。纯服务测试使用 profile.ts。
