@@ -1,5 +1,6 @@
 import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
+import { openFixtureReview } from "./fixtures/review-policy";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -416,6 +417,8 @@ test("Two official submissions, review results and resubmission counters remain 
       },
     });
   process.env.EVENT_REVIEWER_EMAILS = reviewer.email;
+  await openFixtureReview(reviewer, "demo");
+  await openFixtureReview(reviewer, "upcoming-demo");
   try {
     await Promise.all([
       a.register(buyer, registration),

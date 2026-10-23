@@ -93,6 +93,7 @@ test("Operator has business permissions without role management; ordinary users 
   assert.deepEqual((await service.getAdministrator(operator))?.permissions, [
     "admin:access",
     "admin:materials",
+    "admin:projects",
     "admin:content",
     "admin:project-comments",
   ]);
@@ -213,6 +214,7 @@ test("Queued mutation rechecks actor permission after downgrade; existing identi
   assert.deepEqual((await service.getAdministrator(second))?.permissions, [
     "admin:access",
     "admin:materials",
+    "admin:projects",
     "admin:content",
     "admin:project-comments",
   ]);

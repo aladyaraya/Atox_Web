@@ -184,16 +184,10 @@ test("Bilingual mobile gallery, missing images, reduced motion and honest submis
     .locator(".pb-hero")
     .getByRole("link", { name: "Submit a project", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/projects\/submit$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "coming soon",
-  );
-  await expect(page.locator("form,input,textarea")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/login\?next=%2Fprojects%2Fsubmit$/);
+  await expect(page.locator('input[type="email"]')).toBeVisible();
   await page.getByRole("button", { name: "切换为中文" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "项目提交即将开放",
-  );
-  await page.getByRole("link", { name: "返回项目展区" }).click();
+  await page.goto("/projects");
   await expect(page).toHaveURL(/\/projects$/);
 });
 

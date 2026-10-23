@@ -76,6 +76,7 @@ const concepts: Record<string, [string, string, string, string]> = {
   ],
 };
 export function getProjectDetails(project: ProjectDefinition): ProjectDetails {
+  if (project.details) return project.details;
   const custom = concepts[project.id] ?? [
     "从想法到实验",
     "将核心想法拆成可以观察和验证的小步骤，用原型记录假设与反馈。",

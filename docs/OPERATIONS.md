@@ -1,5 +1,7 @@
 # 本地运行、验收与部署维护
 
+完整新机器启动、管理员初始化、入口及升级步骤见 [交接运行说明](HANDOFF.md)。
+
 ## 安全运行基线
 
 Node 24、npm ci、自己的 .env.local；密钥仅服务端，至少 32 字符且认证／模拟支付独立。APP_ORIGIN 与访问域完全一致；127.0.0.1 和 localhost 是不同来源。单进程占用同一个 PGlite 数据目录，网站和维护 CLI 不能同时打开它。
@@ -25,7 +27,7 @@ Node 24、npm ci、自己的 .env.local；密钥仅服务端，至少 32 字符�
 
 ## 迁移与备份
 
-getDb 初始化自动迁移；人工 npm run db:migrate 读取 .env.local。结构变更生成新迁移，审查 SQL、外键、唯一约束、journal 和 snapshot；不修改 0000—0007。迁移前停止所有使用目标 DB 的进程并备份完整 DB_PATH 与 UPLOAD_PATH 到仓库外受控位置，包含匹配时间点的文件、配置引用和恢复说明，密钥单独受控保存。
+getDb 初始化自动迁移；人工 npm run db:migrate 读取 .env.local。结构变更生成新迁移，审查 SQL、外键、唯一约束、journal 和 snapshot；不修改已应用的历史迁移（当前 0000—0012）。迁移前停止所有使用目标 DB 的进程并备份完整 DB_PATH 与 UPLOAD_PATH 到仓库外受控位置，包含匹配时间点的文件、配置引用和恢复说明，密钥单独受控保存。
 
 迁移后重启网站，检查公开页面、用户／会话及相关材料。失败先停服诊断，恢复应使用已验证的成套备份，不能混用不同时间点数据库和附件。没有自动回滚命令，不用删表、重置数据或重新 bootstrap 解问题。
 
@@ -34,6 +36,7 @@ getDb 初始化自动迁移；人工 npm run db:migrate 读取 .env.local。结�
 M014 的 `oidc:preview` 只启动 3104／独立沙箱。旧账号关联审批 `oidc:approve-recovery` 必须先停止同 DB 网站，独立核验所有权、核对流程及目标 UUID、显式加载正确隔离或可信 OIDC 环境，再由原浏览器确认；不自动读取真实 .env.local。配置／操作细节见 [M014 README](../src/modules/auth/oidc/README.md)。关闭功能仅撤销 OIDC 接入可用性，不重新开放已关联账号的开发 OTP；不要通过解绑／删表当回退。
 
 - events:cleanup-files：超过 24 小时的孤儿文件；保护所有活动正式材料及草稿有效引用。
+- projects:cleanup-files：项目私有目录超过 24 小时的孤儿文件；保护全部草稿、不可变送审历史与公开版本引用。
 - ticketing:maintain：开发模拟支付查单、关单、预留处理；未知状态保留且继续核对，不删除财务历史。必须启用开发预览。
 - admin:bootstrap：首位超级管理员一次性绑定已验证账号，停服执行，记录本机操作者；同目标重复不恢复禁用或提权。之后用授权后台管理。
 

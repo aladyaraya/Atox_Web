@@ -9,6 +9,8 @@ test("Production admin remains authenticated and exposes no initialization endpo
     "/admin/audit",
     "/admin/materials",
     "/admin/project-comments",
+    "/admin/projects",
+    "/admin/projects/idea-atlas/preview",
     "/admin/events",
     "/admin/content/homepage",
     "/admin/content/homepage/preview",
@@ -25,7 +27,10 @@ test("Production admin remains authenticated and exposes no initialization endpo
     "/api/admin/administrators",
     "/api/admin/audit",
     "/api/admin/materials",
+    "/api/admin/materials/review-policies/demo",
     "/api/admin/project-comments",
+    "/api/admin/projects",
+    "/api/account/projects",
     "/api/admin/content/events",
     "/api/admin/content/events/demo",
     "/api/admin/content/homepage",
@@ -39,6 +44,24 @@ test("Production admin remains authenticated and exposes no initialization endpo
     data: { email: "visitor@example.com", role: "super_admin" },
   });
   expect(grant.status()).toBe(401);
+  for (const [path, method] of [
+    [
+      "/api/admin/materials/00000000-0000-0000-0000-000000000000/revoke-approval",
+      "POST",
+    ],
+    [
+      "/api/admin/materials/00000000-0000-0000-0000-000000000000/coordination",
+      "PATCH",
+    ],
+    ["/api/admin/materials/review-policies/demo", "PATCH"],
+  ] as const) {
+    const response = await request.fetch(path, {
+      method,
+      headers: { Origin: "http://127.0.0.1:3101" },
+      data: {},
+    });
+    expect(response.status()).toBe(401);
+  }
   expect(
     (await request.post("/api/admin/bootstrap", { data: {} })).status(),
   ).toBe(404);

@@ -29,12 +29,14 @@ const permissions = (role: AdminRole): AdminPermission[] =>
         "admin:manage",
         "admin:audit",
         "admin:materials",
+        "admin:projects",
         "admin:project-comments",
         "admin:content",
       ]
     : [
         "admin:access",
         "admin:materials",
+        "admin:projects",
         "admin:content",
         "admin:project-comments",
       ];

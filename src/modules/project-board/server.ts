@@ -1,6 +1,6 @@
 import "server-only";
 import { getBoard } from "../event-board/server";
-import { projectRegistry } from "./config";
+import { readPublicProjects } from "../project-submission/store";
 import { readProjectCatalog } from "./catalog";
 import type { ProjectFilters } from "./contracts";
 import type { AuthUser } from "../auth/contracts";
@@ -16,6 +16,7 @@ export async function getProjects(
   user?: AuthUser | null,
 ) {
   const events = await getBoard();
+  const projectRegistry = await readPublicProjects();
   const ids = projectRegistry
     .filter(
       (p) =>

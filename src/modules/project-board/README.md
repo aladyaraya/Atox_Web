@@ -1,5 +1,11 @@
 # M006 · 项目展区与投稿接入预留
 
+## M015 真实投稿及发布接入（2026-10-23）
+
+公开展板和详情改为通过 M015 store 读取数据库中的有效公开版本，不回退静态注册表。原 12 个演示项目纳入管理，保留 ID、内容、时间及互动；用户项目 demo=false，原文与可选翻译逐字段回退，不自动翻译。M006 仍拥有公开 DTO 白名单、筛选、排序、分页和详情 UI；M015 拥有投稿、版本、私有附件与发布；M012 拥有互动。关联活动下架继续隐藏公开项目。
+
+`/projects/submit` 已替换为受保护的真实投稿，`/account/projects` 为本人管理。旧 FutureProjectSubmissionInput 仅为历史预留形状，当前写入使用 M015 ProjectInput，不能直接展开为公开卡片。接入与限制见 [M015](../project-submission/README.md)，结果见 docs/M015-VALIDATION.md；下文仅演示配置／投稿未开放为历史记录。
+
 ## 1.1.0 当前升级（2026-10-22）
 
 卡片已进入 /projects/[projectId] 独立详情，原基础弹层不再使用。详情读取 getProject(id,user?)，配置长说明／媒体来自 details.ts；展示原创双语演示内容，体验／代码／视频链接未提供时隐藏。项目可见性由 visibility.ts 与 M010 发布源共同检查，未知／下架为 404。

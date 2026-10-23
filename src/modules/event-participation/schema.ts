@@ -69,6 +69,11 @@ export const eventMaterials = pgTable(
     result: text("result").$type<ReviewResult>(),
     publicNote: text("public_note"),
     internalNote: text("internal_note"),
+    coordinationRequired: boolean("coordination_required")
+      .notNull()
+      .default(false),
+    coordinationSubmittedRevision: integer("coordination_submitted_revision"),
+    reviewNotice: text("review_notice").$type<"approval_revoked">(),
     processedBy: uuid("processed_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -81,6 +86,11 @@ export const eventMaterials = pgTable(
     index("event_materials_user_id_idx").on(table.userId),
     index("event_materials_event_status_idx").on(table.eventId, table.status),
     index("event_materials_processed_by_idx").on(table.processedBy),
+    index("event_materials_event_submitted_idx").on(
+      table.eventId,
+      table.submittedAt,
+      table.id,
+    ),
   ],
 );
 

@@ -57,6 +57,7 @@ export interface ParticipationDto {
   serverNow: string;
 }
 export interface MaterialsDto {
+  reviewNotice?: "approval_revoked" | null;
   id: string | null;
   official: MaterialPayload | null;
   draft: MaterialPayload | null;
@@ -89,6 +90,7 @@ export interface ReviewItem extends Omit<
   MaterialsDto,
   "draft" | "canEdit" | "reason"
 > {
+  reviewPolicy?: import("../material-review/contracts").ReviewPolicy;
   registration: RegistrationDto;
   internalNote: string | null;
 }

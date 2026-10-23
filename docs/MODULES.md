@@ -1,5 +1,33 @@
 # 模块登记与整合索引
 
+当前完整基线为 M001—M015。新机器及已有数据运行见 [交接说明](HANDOFF.md)；历史段落中的待开发描述以最新模块记录为准。
+
+## M015 1.0.0 · 用户项目投稿、审核与发布管理（2026-10-23）
+
+新增 `/projects/submit` 真实投稿、`/account/projects` 本人项目及 `/admin/projects` 管理总表／详情／授权预览。草稿、不可变送审版本和公开版本分离，驳回原因必填，审核通过不自动发布；新稿审核期间保留线上旧版。关联活动须本人已报名并遵守原提交期，独立项目及项目审核不限时。作者主动下架撤销授权，恢复须重新确认、送审、批准及发布。两类有效管理员使用 admin:projects，不读取未提交草稿或代改作者内容。
+
+追加 0012，三个独立项目表及不可变版本保护；12 个演示项目原 ID、内容、发布时间及互动保留，导入后台仅管预览／上下架，不伪造投稿人或审核历史。M006、M012 改统一读取，公开白名单不包含账号、私有 PDF 或审核备注；同源、修订、审计及私有存储复用共享基础，不导入 M002 材料。无新环境变量，增加离线 `projects:cleanup-files`。
+
+实际接口及边界见 [M015 README](../src/modules/project-submission/README.md)，设计见 [M015 设计](M015-DESIGN.md)，测试及迁移核对见 [M015 验收](M015-VALIDATION.md)。官方新建／代改、团队投稿、真实收款、OIDC 生产条件和最终全站整合仍另行安排。
+
+当前验证：137 服务、59 全站浏览器、最终投稿专项 4 项、类型／Lint／构建、生产保护 2 项及票务关闭 1 项通过。停服备份后 31 张旧表内容及计数、12 份旧 SQL 与真实环境均保持，源码不含运行资料。
+
+## M009 1.1.2 · 审核时间与总表复核修正（2026-10-23）
+
+按用户确认，未配置时默认跟随活动开始／结束，不再锁成只读；新增 event/unlimited/custom 三种规则，均支持暂停，两类管理员操作及原因审计保留。0011 兼容旧策略为 custom，不改旧业务数据或历史迁移。总表入口、标题及正式记录位置改进，手机标题和定位、空表解释同步修正；不展示草稿或自动发布材料。
+
+接口及当前规则见 [M009 README](../src/modules/material-review/README.md)，复核及测试见 [1.1.2 验收](M009-1.1.2-VALIDATION.md)。下文 1.1.0 的默认只读为历史规则。本次不修改 OIDC、活动发布、首页内容管理或其他业务模块。
+
+验证：124 项服务、55 项全站浏览器、11 项审核专项及类型／Lint／构建通过；生产保护 2 项、票务关闭 1 项通过。备份迁移后 31 张旧表原列数据及 11 份历史迁移 SQL 保留；隔离真实副本查询核对正式记录与草稿排除正确。
+
+## M009 1.1.0 · 活动审核管理优化（2026-10-23）
+
+现有正式材料审核增量：总表／组合筛选与统计、撤回通过、独立协调标记／备注及按活动审核窗口。两类有效管理员均可配置时间，变更原因必填；未配置默认只读，超管也无绕过。撤回不改正式提交版本／附件，不公开项目；重提保留内部协调及其关联版本，原提交截止不变。
+
+新增审核策略 GET/PATCH、撤回 POST、协调 PATCH；共同服务覆盖旧受理接口，权限、双修订、时间和审计在共享队列事务检查。追加 0010，旧迁移／数据保留，无新环境变量；M013／M014 不变。维护接口、错误及限制见 [M009 README](../src/modules/material-review/README.md)，结果见 [1.1 验收](M009-1.1-VALIDATION.md)。历史 1.0.0 内容以本段为当前规则。
+
+当前验证：121 项服务、54 项单次全量浏览器回归、类型／Lint／隔离构建、生产保护 2 项及票务禁用 1 项通过；30 张旧表原列内容与计数保留。既有 Next.js 依赖安全公告记录为上线限制，未在本次升级。
+
 ## M014 · 官网 OIDC 与原账号映射（2026-10-22）
 
 M001 内部 src/modules/auth/oidc，业务仍用 getCurrentUser／本地 UUID。第三客户端、开发隔离开关、邮箱冲突暂停、新鲜验证、独立证据批准、一次性确认、会话与审计；0009 追加五表。真实环境不改，不自动绑定现有用户，25 张旧表内容保留。112 服务／50 原业务浏览器／3 真实官网协议及 M013 回归通过，见 [README](../src/modules/auth/oidc/README.md)、[结果](M014-VALIDATION.md)。生产始终关闭，本机运行 Logto 仍需 Docker。
@@ -16,7 +44,7 @@ M001 内部 src/modules/auth/oidc，业务仍用 getCurrentUser／本地 UUID。
 
 当前实现包含下表全部模块；M010/M011 共用代码但职责独立。各 README 顶部维护摘要描述实际当前接口和依赖，后续旧版本段落仅作为留存轨迹。所有版本仍为本地开发／演示基线，不代表完整生产上线。
 
-M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolveEvent/resolveFiles/resolveCenter 绑定 M010 发布配置；M008 现已支持材料／内容权限，M009 替代旧审核白名单；M006 仍不接真实用户投稿。M003 当前 1.2 为开发模拟，与参赛资格分离。
+M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolveEvent/resolveFiles/resolveCenter 绑定 M010 发布配置；M008 现已支持材料／内容权限，M009 替代旧审核白名单；M006 已由 M015 接入受管公开版本，旧段落为历史记录。M003 当前 1.2 为开发模拟，与参赛资格分离。
 
 维护交接见 [协作](../CONTRIBUTING.md)、[架构](ARCHITECTURE.md) 和 [运维](OPERATIONS.md)。本次只补工程文档和 GitHub 托管，不登记新业务编号；统一当前验证见 [仓库验收](REPOSITORY-VALIDATION.md)。源码、迁移与锁文件使用 Git 维护，原 deliverables 路径是本地历史留存索引，不存在于远端 checkout。
 
@@ -30,12 +58,13 @@ M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolve
 | M006 | 项目展区与投稿接入预留   | 1.1.0 · 排序与详情接入     | `src/modules/project-board/`       | [模块说明](../src/modules/project-board/README.md)       |
 | M007 | 选手中心与组队           | 1.0.0 · 本地验证通过       | `src/modules/participant-center/`  | [模块说明](../src/modules/participant-center/README.md)  |
 | M008 | 管理员权限与官方后台入口 | 1.0.0 · 本地开发基线       | `src/modules/admin/`               | [模块说明](../src/modules/admin/README.md)               |
-| M009 | 选手正式材料审核 | 1.0.0 · 本地验证通过 | `src/modules/material-review/` | [模块说明](../src/modules/material-review/README.md) |
+| M009 | 选手正式材料审核 | 1.1.2 · 审核时间及总表修正 | `src/modules/material-review/` | [模块说明](../src/modules/material-review/README.md) |
 | M010 | 活动管理与发布 | 1.0.0 · 结构化发布基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M011 | 官网内容管理 | 1.0.0 · 结构化内容基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
 | M012 | 项目详情与互动 | 1.0.0 · 点赞、评论及管理 | `src/modules/project-interaction/` | [模块说明](../src/modules/project-interaction/README.md) |
 | M013 | Logto＋OIDC 第一阶段 | 1.0.0 · 隔离验证与接入准备 | `labs/logto-oidc/` | [模块说明](../labs/logto-oidc/README.md) |
 | M014 | 官网 Logto 与原账号映射 | 1.0.0 · 本地接入已验收 | `src/modules/auth/oidc/` | [说明](../src/modules/auth/oidc/README.md) |
+| M015 | 用户项目投稿、审核与发布管理 | 1.0.0 · 本地开发基线 | `src/modules/project-submission/` | [模块说明](../src/modules/project-submission/README.md) |
 
 后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
 

@@ -1,10 +1,14 @@
 # HACKATHON · Atox Web
 
+M015 项目投稿与管理已接入：[提交项目](http://localhost:3000/projects/submit)、[我的项目](http://localhost:3000/account/projects)、[后台项目管理](http://localhost:3000/admin/projects)。支持正式投稿、审核、预览、发布和下架；通过不自动公开，PDF 仅供审核。见 [模块说明](src/modules/project-submission/README.md)、[验收](docs/M015-VALIDATION.md)。
+
 面向创造者的黑客松活动网站，采用单仓库、模块化 Next.js 全栈结构。临时品牌和活动／项目内容是明确标注的演示数据。当前用于本地开发与验收，尚未生产上线。
 
-已实现邮箱认证与公开昵称、活动展板、个人报名与私有材料、选手组队、官网首页、演示项目展区与完整详情、点赞／评论及管理员权限／材料审核／评论管理／活动和首页发布。票务仅为开发模式模拟支付；项目投稿页仅预留入口，真实投稿发布、回复／收藏、真实收款、飞书同步、团队统一提交和最终全站整合尚未完成。
+已实现邮箱认证与公开昵称、活动展板、个人报名与私有材料、选手组队、官网首页、演示项目展区与完整详情、点赞／评论及管理员权限／材料审核／评论管理／活动和首页发布。真实项目投稿、审核及发布已由 M015 实现。票务仅为开发模式模拟支付；回复／收藏、真实收款、飞书同步、团队统一提交和最终全站整合尚未完成。
 
-[项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
+[项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [交接运行说明](docs/HANDOFF.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
+
+M009 现为 1.1.2：[材料审核总表](http://localhost:3000/admin/materials) 集中展示正式提交、筛选与统计，支持撤回通过及内部协调。无需先配置审核时间，默认跟随活动起止；超级或运营管理员可选择不限时、自定义或暂停，变更需原因并审计。后台首页、侧栏及列表均标明总表入口；草稿不计入，原提交截止不变，不自动公开项目。见 [说明](src/modules/material-review/README.md)、[复核验收](docs/M009-1.1.2-VALIDATION.md)。
 
 新增 [M013 隔离实验](labs/logto-oidc/README.md) 与 [M014 官网接入](src/modules/auth/oidc/README.md)：官方 SDK 经 M001 映射本地身份，旧账号需独立证据，不凭同邮箱合并。`npm run oidc:preview` 在 3104 用独立测试数据，不切换原真实配置。Logto 需要 Docker／Compose、独立 PostgreSQL／Mailpit，普通网站开发仍无需 Docker。本阶段生产关闭。
 
@@ -36,11 +40,11 @@ npm run dev
 
 ```text
 src/app/                  页面、API、路由适配；业务逻辑放模块内
-src/modules/              M001—M012（M010/M011 共用发布核）
+src/modules/              M001—M015（M010/M011 共用发布核）
 labs/logto-oidc/           M013 隔离验证工程；独立依赖、容器和测试数据
 src/components/           共享导航、语言、布局及兼容导出
 src/lib/                  共享 DB、schema 聚合和兼容适配
-drizzle/                  0000—0009 追加迁移、snapshot 和 journal
+drizzle/                  0000—0012 追加迁移、snapshot 和 journal
 public/                   原创 SVG 等公开资产；禁止放私有附件
 tests/                    服务／规则、隔离浏览器、生产禁用测试
 scripts/                  迁移、受控初始化、维护和提交扫描
@@ -58,7 +62,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M003 | 开发模拟购票、订单及支付维护 | [ticketing](src/modules/ticketing/README.md) |
 | M004 | 活动目录、公开配置和阶段筛选 | [event-board](src/modules/event-board/README.md) |
 | M005 | 长页首页与演示内容基线 | [homepage](src/modules/homepage/README.md) |
-| M006 | 原创演示项目卡片、筛选、预览和投稿预留 | [project-board](src/modules/project-board/README.md) |
+| M006 | 公开项目卡片、筛选、详情与 M015 发布源 | [project-board](src/modules/project-board/README.md) |
 | M007 | 选手中心、招募、队伍和申请 | [participant-center](src/modules/participant-center/README.md) |
 | M008 | 管理员授权与权限审计 | [admin](src/modules/admin/README.md) |
 | M009 | 正式材料审核与业务审计 | [material-review](src/modules/material-review/README.md) |
@@ -66,6 +70,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M012 | 项目详情接入、点赞、一级评论与后台管理 | [project-interaction](src/modules/project-interaction/README.md) |
 | M013 | Logto＋OIDC 第一阶段：隔离验证与接入准备 | [独立实验](labs/logto-oidc/README.md) |
 | M014 | 官网 Logto 与原账号映射 | [M001 内部适配](src/modules/auth/oidc/README.md) |
+| M015 | 用户项目投稿、审核、授权预览与发布 | [project-submission](src/modules/project-submission/README.md) |
 
 ## 配置
 
@@ -101,7 +106,7 @@ npm run test:production
 
 提交前暂存拟提交文件，再运行 `npm run check:repository`，扫描 Git index 的真实待提交内容。它检查禁止路径、常见凭据模式及是否复制本地密钥，是人工复核的补充，不能保证识别所有敏感数据。
 
-GitHub Actions 在 push／PR 执行以上检查，使用 Node 24、`npm ci`、隔离数据库／构建和 Chromium，不需要业务密钥、真实账号或生产访问。测试端口为 3100／3101／3102；不要并行启动多个浏览器套件。详细隔离和排错见 [维护手册](docs/OPERATIONS.md)。测试报告和认证 trace 留在本地，不上传为 CI 附件。
+GitHub Actions 在 push／PR 执行以上检查，使用 Node 24、`npm ci`、隔离数据库／构建和 Chromium，不需要业务密钥、真实账号或生产访问。测试端口为 3100／3101／3102；不要并行启动多个浏览器套件。详细隔离和排错见 [维护手册](docs/OPERATIONS.md) · [交接运行说明](docs/HANDOFF.md)。测试报告和认证 trace 留在本地，不上传为 CI 附件。
 
 ## 数据库与管理员维护
 
@@ -112,6 +117,7 @@ GitHub Actions 在 push／PR 执行以上检查，使用 Node 24、`npm ci`、�
 ```sh
 npm run db:migrate
 npm run events:cleanup-files
+npm run projects:cleanup-files
 npm run ticketing:maintain
 ```
 
@@ -127,4 +133,4 @@ npm run ticketing:maintain
 
 ## 多人协作
 
-默认基于 main 建 `feat/*`、`fix/*`、`docs/*` 或 `chore/*` 分支，PR 描述最终行为、验证及兼容影响；不得强制推送共享分支。模块变更同步 README、状态和登记表。发布通过独立审查和标签标记，源码托管不代表生产上线；历史本地归档保留，后续用 Git commit／tag 追踪。详见 [CONTRIBUTING](CONTRIBUTING.md)。仓库暂无授权开源许可证，不能将 private 字段或私有仓库误解为开源许可。
+默认基于最新 main 建 `codex/<task>`，也支持团队约定的 `feat/*`、`fix/*`、`docs/*` 或 `chore/*` 分支，PR 描述最终行为、验证及兼容影响；不得强制推送共享分支。模块变更同步 README、状态和登记表。发布通过独立审查和标签标记，源码托管不代表生产上线；历史本地归档保留，后续用 Git commit／tag 追踪。详见 [CONTRIBUTING](CONTRIBUTING.md)。仓库暂无授权开源许可证，不能将 private 字段或私有仓库误解为开源许可。
