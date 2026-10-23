@@ -4,12 +4,12 @@
 
 ## 合并范围
 
-既有串联 PR 按依赖顺序合入 main，采用 merge commit 保留模块提交历史：
+既有串联 PR #1—#3 已按依赖顺序合入 main，采用 merge commit 保留模块提交历史。本次完整范围为：
 
 1. [PR #1](https://github.com/aladyaraya/Atox_Web/pull/1)：M012 项目详情、点赞评论与排序。
 2. [PR #2](https://github.com/aladyaraya/Atox_Web/pull/2)：M013 隔离 Logto OIDC 实验。
 3. [PR #3](https://github.com/aladyaraya/Atox_Web/pull/3)：M014 官网 OIDC 与安全身份映射。
-4. `codex/m015-management-handoff`：M009 1.1.2 审核时间与总表优化、M015 1.0.0 用户项目投稿／审核／发布，以及本轮运行交接整理。
+4. [PR #4](https://github.com/aladyaraya/Atox_Web/pull/4)，`codex/m015-management-handoff`：M009 1.1.2 审核时间与总表优化、M015 1.0.0 用户项目投稿／审核／发布，以及本轮运行交接整理。
 
 每次合并核对 PR 的最新检查及 GitHub 合并状态；只在确认分支头已进入 main 后清理远端／本地旧分支，不强推或改写 main。实际状态以各 PR 和 Actions 为准。
 
