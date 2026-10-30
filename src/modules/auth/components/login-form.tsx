@@ -10,11 +10,13 @@ import { OidcLogin } from "../oidc/components/oidc-login";
 import { oidcMessage } from "../oidc/messages";
 export function LoginForm({
   devMailEnabled,
+  emailLoginEnabled = devMailEnabled,
   returnTo = "/account",
   oidc = { enabled: false, sandbox: false },
   centralError = false,
 }: {
   devMailEnabled: boolean;
+  emailLoginEnabled?: boolean;
   returnTo?: string;
   oidc?: { enabled: boolean; sandbox: boolean };
   centralError?: boolean;
@@ -89,7 +91,7 @@ export function LoginForm({
           {oidc.enabled && (
             <OidcLogin returnTo={returnTo} sandbox={oidc.sandbox} />
           )}
-          {devMailEnabled && (
+          {emailLoginEnabled && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();

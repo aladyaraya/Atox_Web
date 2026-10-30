@@ -1,5 +1,7 @@
 # HACKATHON · Atox Web
 
+本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP、唯一测试收件人）。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及进度见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。
+
 M015 项目投稿与管理已接入：[提交项目](http://localhost:3000/projects/submit)、[我的项目](http://localhost:3000/account/projects)、[后台项目管理](http://localhost:3000/admin/projects)。支持正式投稿、审核、预览、发布和下架；通过不自动公开，PDF 仅供审核。见 [模块说明](src/modules/project-submission/README.md)、[验收](docs/M015-VALIDATION.md)。
 
 面向创造者的黑客松活动网站，采用单仓库、模块化 Next.js 全栈结构。临时品牌和活动／项目内容是明确标注的演示数据。当前用于本地开发与验收，尚未生产上线。

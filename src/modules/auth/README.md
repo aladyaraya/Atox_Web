@@ -1,5 +1,21 @@
 # M001 · 邮箱认证模块
 
+## 1.1.0 · 本机 QQ SMTP 投递增量（2026-10-30，本地验收通过）
+
+真实测试邮件、首次验证码注册和退出后新码登录均已由用户确认；单进程核对独立测试库只有 1 个用户，第二次登录用户标识不变，开发邮箱没有真实验证码记录。141 项服务、原登录浏览器 3 项、生产保护 2 项、类型／Lint／隔离构建通过；原数据及 OIDC 模块保留。完整结果见下方验证记录，生产接入仍未完成。
+
+新机器可将 [无密钥示例](../../../docs/examples/mail-test.env.example) 复制到 `.data/mail-test/.env.local` 后填写；已有本机文件不要覆盖。仅文件准备时可创建目录，不需要数据库迁移或管理员初始化。外发邮件内容实际交由 QQ 邮箱处理。
+
+邮件适配新增 `smtp.ts`，登录页将邮箱认证可用性与开发邮箱预览分别判断。原 send-code／verify-code／me／logout 地址、用户、会话、验证码规则及数据库结构不变，无新增迁移。未指定 MAIL_TRANSPORT 时继续原开发邮箱；本轮不启用或修改 M013／M014 的身份关联和已有保护规则。
+
+真实 SMTP 仅用于 development、回环 APP_ORIGIN、`.data/mail-test/` 子目录数据库且 OIDC 关闭的测试，当前限定 QQ SMTP TLS 465 和唯一测试收件人。production 始终禁止此本机适配，不等于生产邮件方案完成。`isEmailLoginEnabled` 是新增服务端公开入口，`isDevMailEnabled` 仅控制本地邮箱；SMTP 模式不保存验证码原文、不显示开发邮箱且 `/dev/mail` 返回 404。
+
+先在 `.data/mail-test/.env.local` 私下配置 SMTP_HOST、SMTP_PORT、SMTP_SECURE、SMTP_USER、SMTP_FROM、SMTP_PASSWORD、MAIL_TEST_RECIPIENT、AUTH_SECRET。QQ 的 SMTP_FROM 必须与 SMTP_USER 相同，SMTP_PASSWORD 使用客户端授权码。不要复制或上传实际配置。`npm run mail:check` 向配置的测试收件人发送一封不含验证码的测试邮件，不打开数据库；`npm run mail:preview` 在 `http://127.0.0.1:3105/login` 启动独立站。启动器强制隔离数据、上传、构建目录和 OIDC／票务／开发邮箱开关，不覆盖根 `.env.local`；原站请继续用 localhost，避免不同端口共享同主机 Cookie。
+
+先在共享写事务中提交限流记录和挑战摘要，再在事务及写队列之外等待 SMTP。发送拒绝或结果未知返回 `MAIL_DELIVERY_FAILED`（502、retryAfter 60），作废本次精确挑战、保留限流，不自动重发、不退回开发邮箱。重发后旧码仍失效；失效或超时邮件即使迟到也不能使用。`MAIL_RECIPIENT_NOT_ALLOWED`（400）拒绝本机允许名单之外的收件人，不保存发送记录。接口／日志不输出原文验证码、凭据或原始供应商错误；SMTP 接受不代表收件人已经收到。
+
+本轮服务测试见 `tests/smtp-auth.test.ts`（模拟 transport，无真实外发），真实 SMTP 验证与人工收信／登录进度见 [验证记录](../../../docs/M001-SMTP-VALIDATION.md)。现有已绑定 OIDC 身份的开发 OTP 防旁路限制保留，不解绑或迁移用户；本机测试使用独立新账号。下文生产邮件未开发的历史描述指正式上线方案，仍未完成。
+
 ## M015 本人项目入口接入（2026-10-23）
 
 账户页项目卡改为 `/account/projects`，M015 使用公开身份及资料纯服务读取默认公开昵称，不更改用户、会话、OIDC 或昵称 DTO，不以邮箱作为公开创作者默认值。投稿路由未登录经原安全 next 返回。业务权限、资格及附件由 M015 自行校验，见对应模块 README。
