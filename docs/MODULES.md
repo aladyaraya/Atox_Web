@@ -1,171 +1,29 @@
-# 模块登记与整合索引
+# 当前模块登记
 
-当前完整基线为 M001—M015。新机器及已有数据运行见 [交接说明](HANDOFF.md)；历史段落中的待开发描述以最新模块记录为准。
+范围由本表及各模块 README 共同定义。分支／PR 管理见 BRANCHES-AND-PRS.md，实际验收见 CORE-CONSOLIDATION-VALIDATION.md。历史交付不等于当前主线启用或公网发布。
 
-## M015 1.0.0 · 用户项目投稿、审核与发布管理（2026-10-23）
+| 编号 | 职责 | 目录／维护接口 |
+| --- | --- | --- |
+| M001 | 邮箱验证码、会话、昵称、真实本机投递 | auth；其他模块只通过其 server/client/contracts 接入 |
+| M002 | 多活动个人报名、草稿、正式材料、私有附件 | event-participation；resolveEvent/resolveFiles 按活动绑定 |
+| M004 | 公开活动展板和筛选 | event-board；getBoard/getEventConfig 读取发布源 |
+| M005 | 长页首页、双语入口和页脚 | homepage；组件及结构化发布内容 |
+| M006 | 项目搜索、分类、活动筛选、详情及排序 | project-board；getProjects/getProject |
+| M007 | 组队、招募和申请 | participant-center；resolveCenter 绑定活动 |
+| M008 | 本地管理员、权限及审计 | admin；server.ts、contracts.ts |
+| M009 | 正式材料审核、撤回通过、协调、审核窗口 | material-review；server.ts |
+| M010/M011 | 活动和首页的草稿、预览、发布、下架 | content-management；两模块共用发布核 |
+| M012 | 点赞、一级评论及管理 | project-interaction；server/client/contracts |
+| M015 | 真实项目投稿、送审、公开授权、发布和下架 | project-submission；server/client/contracts |
 
-新增 `/projects/submit` 真实投稿、`/account/projects` 本人项目及 `/admin/projects` 管理总表／详情／授权预览。草稿、不可变送审版本和公开版本分离，驳回原因必填，审核通过不自动发布；新稿审核期间保留线上旧版。关联活动须本人已报名并遵守原提交期，独立项目及项目审核不限时。作者主动下架撤销授权，恢复须重新确认、送审、批准及发布。两类有效管理员使用 admin:projects，不读取未提交草稿或代改作者内容。
+## 独立预备
 
-追加 0012，三个独立项目表及不可变版本保护；12 个演示项目原 ID、内容、发布时间及互动保留，导入后台仅管预览／上下架，不伪造投稿人或审核历史。M006、M012 改统一读取，公开白名单不包含账号、私有 PDF 或审核备注；同源、修订、审计及私有存储复用共享基础，不导入 M002 材料。无新环境变量，增加离线 `projects:cleanup-files`。
+M003 在 codex/module-m003-ticketing；M013/M014 在 codex/module-m013-m014-oidc。运行实现、路由、SDK、配置、实验和专项测试不属于 main。M016 在 codex/m016-production-readiness 暂缓。
 
-实际接口及边界见 [M015 README](../src/modules/project-submission/README.md)，设计见 [M015 设计](M015-DESIGN.md)，测试及迁移核对见 [M015 验收](M015-VALIDATION.md)。官方新建／代改、团队投稿、真实收款、OIDC 生产条件和最终全站整合仍另行安排。
+## 数据与集成边界
 
-当前验证：137 服务、59 全站浏览器、最终投稿专项 4 项、类型／Lint／构建、生产保护 2 项及票务关闭 1 项通过。停服备份后 31 张旧表内容及计数、12 份旧 SQL 与真实环境均保持，源码不含运行资料。
+M001 是唯一认证边界；用户 UUID 不改，管理员角色不由邮件或外部身份自动产生。主线 PGlite 单进程，共享连接和写队列；保留 0000—0013 全部历史，不删旧表。legacy schema 只保存历史元数据及防绕过查询，不实现预备模块。
 
-## M009 1.1.2 · 审核时间与总表复核修正（2026-10-23）
+业务路由调用异步发布源，写入重查权限、时间、修订和附件归属。M002 私有材料不自动公开，M015 审核与发布分开，组队不共享个人材料。公开 DTO 不包含邮箱、私有 PDF 或内部备注。
 
-按用户确认，未配置时默认跟随活动开始／结束，不再锁成只读；新增 event/unlimited/custom 三种规则，均支持暂停，两类管理员操作及原因审计保留。0011 兼容旧策略为 custom，不改旧业务数据或历史迁移。总表入口、标题及正式记录位置改进，手机标题和定位、空表解释同步修正；不展示草稿或自动发布材料。
-
-接口及当前规则见 [M009 README](../src/modules/material-review/README.md)，复核及测试见 [1.1.2 验收](M009-1.1.2-VALIDATION.md)。下文 1.1.0 的默认只读为历史规则。本次不修改 OIDC、活动发布、首页内容管理或其他业务模块。
-
-验证：124 项服务、55 项全站浏览器、11 项审核专项及类型／Lint／构建通过；生产保护 2 项、票务关闭 1 项通过。备份迁移后 31 张旧表原列数据及 11 份历史迁移 SQL 保留；隔离真实副本查询核对正式记录与草稿排除正确。
-
-## M009 1.1.0 · 活动审核管理优化（2026-10-23）
-
-现有正式材料审核增量：总表／组合筛选与统计、撤回通过、独立协调标记／备注及按活动审核窗口。两类有效管理员均可配置时间，变更原因必填；未配置默认只读，超管也无绕过。撤回不改正式提交版本／附件，不公开项目；重提保留内部协调及其关联版本，原提交截止不变。
-
-新增审核策略 GET/PATCH、撤回 POST、协调 PATCH；共同服务覆盖旧受理接口，权限、双修订、时间和审计在共享队列事务检查。追加 0010，旧迁移／数据保留，无新环境变量；M013／M014 不变。维护接口、错误及限制见 [M009 README](../src/modules/material-review/README.md)，结果见 [1.1 验收](M009-1.1-VALIDATION.md)。历史 1.0.0 内容以本段为当前规则。
-
-当前验证：121 项服务、54 项单次全量浏览器回归、类型／Lint／隔离构建、生产保护 2 项及票务禁用 1 项通过；30 张旧表原列内容与计数保留。既有 Next.js 依赖安全公告记录为上线限制，未在本次升级。
-
-## M014 · 官网 OIDC 与原账号映射（2026-10-22）
-
-M001 内部 src/modules/auth/oidc，业务仍用 getCurrentUser／本地 UUID。第三客户端、开发隔离开关、邮箱冲突暂停、新鲜验证、独立证据批准、一次性确认、会话与审计；0009 追加五表。真实环境不改，不自动绑定现有用户，25 张旧表内容保留。112 服务／50 原业务浏览器／3 真实官网协议及 M013 回归通过，见 [README](../src/modules/auth/oidc/README.md)、[结果](M014-VALIDATION.md)。生产始终关闭，本机运行 Logto 仍需 Docker。
-
-## M013 · Logto＋OIDC 隔离验证（2026-10-22）
-
-独立实验代码位于 `labs/logto-oidc/`，版本 1.0.0；固定 Logto／PostgreSQL／Mailpit、两套独立客户端／会话、官方授权码＋PKCE 和专用 CI。主站未接入，没有新增业务表或迁移，不改默认认证、外键和管理员角色。当前机器无 Docker／WSL，必须区分本机隔离测试与真实容器 CI，实际结果见 [验收](M013-VALIDATION.md)。[模块说明](../labs/logto-oidc/README.md) 记录接口、配置和责任；[接入设计](M013-INTEGRATION.md) 列出第二阶段改动与验收，旧账号不得按邮箱自动合并，开发邮件不构成正式所有权证明。
-
-## M012 当前接入（2026-10-22）
-
-项目详情／点赞／一级评论／后台处理已实现，M006 当前 1.1.0；M001 增加公开昵称的兼容服务，M008 增加评论管理权限，均不改旧认证契约。历史段落中的“互动未实现”以此更新为准。真实投稿／发布、回复／收藏与最终整合仍另行安排。接口与限制见 [M012 模块](../src/modules/project-interaction/README.md)，验证见 [M012 验收](M012-VALIDATION.md)。
-
-## 当前维护约定（2026-10-10）
-
-当前实现包含下表全部模块；M010/M011 共用代码但职责独立。各 README 顶部维护摘要描述实际当前接口和依赖，后续旧版本段落仅作为留存轨迹。所有版本仍为本地开发／演示基线，不代表完整生产上线。
-
-M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolveEvent/resolveFiles/resolveCenter 绑定 M010 发布配置；M008 现已支持材料／内容权限，M009 替代旧审核白名单；M006 已由 M015 接入受管公开版本，旧段落为历史记录。M003 当前 1.2 为开发模拟，与参赛资格分离。
-
-维护交接见 [协作](../CONTRIBUTING.md)、[架构](ARCHITECTURE.md) 和 [运维](OPERATIONS.md)。本次只补工程文档和 GitHub 托管，不登记新业务编号；统一当前验证见 [仓库验收](REPOSITORY-VALIDATION.md)。源码、迁移与锁文件使用 Git 维护，原 deliverables 路径是本地历史留存索引，不存在于远端 checkout。
-
-| 编号 | 模块                     | 版本／阶段                 | 代码                               | 交付文档                                                 |
-| ---- | ------------------------ | -------------------------- | ---------------------------------- | -------------------------------------------------------- |
-| M001 | 邮箱注册与登录           | 1.0.0 · 本地开发基线       | `src/modules/auth/`                | [模块说明](../src/modules/auth/README.md)                |
-| M002 | 个人报名、材料提交与受理 | 1.0.0 · 已验收本地开发基线 | `src/modules/event-participation/` | [模块说明](../src/modules/event-participation/README.md) |
-| M003 | 模拟购票与我的订单       | 1.2.0 · 统一界面与精简结算 | `src/modules/ticketing/`           | [模块说明](../src/modules/ticketing/README.md)           |
-| M004 | 活动展板与多活动接入     | 1.0.0 · 已验收本地开发基线 | `src/modules/event-board/`         | [模块说明](../src/modules/event-board/README.md)         |
-| M005 | 官网长页首页             | 1.0.0 · 已验收本地开发基线 | `src/modules/homepage/`            | [模块说明](../src/modules/homepage/README.md)            |
-| M006 | 项目展区与投稿接入预留   | 1.1.0 · 排序与详情接入     | `src/modules/project-board/`       | [模块说明](../src/modules/project-board/README.md)       |
-| M007 | 选手中心与组队           | 1.0.0 · 本地验证通过       | `src/modules/participant-center/`  | [模块说明](../src/modules/participant-center/README.md)  |
-| M008 | 管理员权限与官方后台入口 | 1.0.0 · 本地开发基线       | `src/modules/admin/`               | [模块说明](../src/modules/admin/README.md)               |
-| M009 | 选手正式材料审核 | 1.1.2 · 审核时间及总表修正 | `src/modules/material-review/` | [模块说明](../src/modules/material-review/README.md) |
-| M010 | 活动管理与发布 | 1.0.0 · 结构化发布基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
-| M011 | 官网内容管理 | 1.0.0 · 结构化内容基线 | `src/modules/content-management/` | [模块说明](../src/modules/content-management/README.md) |
-| M012 | 项目详情与互动 | 1.0.0 · 点赞、评论及管理 | `src/modules/project-interaction/` | [模块说明](../src/modules/project-interaction/README.md) |
-| M013 | Logto＋OIDC 第一阶段 | 1.0.0 · 隔离验证与接入准备 | `labs/logto-oidc/` | [模块说明](../labs/logto-oidc/README.md) |
-| M014 | 官网 Logto 与原账号映射 | 1.0.0 · 本地接入已验收 | `src/modules/auth/oidc/` | [说明](../src/modules/auth/oidc/README.md) |
-| M015 | 用户项目投稿、审核与发布管理 | 1.0.0 · 本地开发基线 | `src/modules/project-submission/` | [模块说明](../src/modules/project-submission/README.md) |
-
-后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
-
-## M009—M011 交接索引
-
-- M009 `/admin/materials` 及详情，GET 列表／详情，POST `/api/admin/materials/:id/decision` 双修订审核，GET `/api/admin/materials/:id/files/:fileId` 仅正式引用附件。有效超级／运营管理员可操作；审计、原因与状态原子落库，内部备注不下发选手，草稿不进入审核。驳回仅原开放期可重提，通过只读；不自动公开项目。
-- M010 `/admin/events`、`/:eventId` 与 `/:eventId/preview`，稳定 ID 创建、双语结构化草稿编辑、预览／发布／下架；M011 `/admin/content/homepage` 及 `/preview`，双语正文、三项主办方向及 metadata，首页下架回退原基线。
-- GET/POST `/api/admin/content/events`；GET/PUT/POST `/api/admin/content/events/:eventId` 和 `/api/admin/content/homepage`。PUT 保存，POST 发布／下架，均带 revision。权限及修订事务复查，冲突保留输入，网络结果未知先读状态；只追加 business_audit_logs 保存操作者、时间、对象及前后内容。
-- 发布核共享，业务 kind 与对象 ID 独立；追加 0006、0007，不改旧迁移或账号。无新环境变量；旧 EVENT_REVIEWER_EMAILS 已废弃且不自动提权，首次超级管理员仍使用 M008 受控初始化。
-- 公众通过 readPublishedEvent／readPublishedHomepage 读取 live；M004 getEventConfig 已为异步；M002 resolveEvent／resolveFiles、M007 resolveCenter 显式绑定发布源并在写事务复查。旧同步 forEvent／forCenter 保留静态兼容，不用于生产路由绕过下架。下架保留数据及后台审核能力。
-- 验证：88 项服务，44 项浏览器用例经全量与 1 项修正复验通过，类型／Lint／隔离构建、生产 2 项、购票禁用 1 项；20 张旧表迁移前后计数及内容摘要一致。分别见 [M009 验收](M009-VALIDATION.md)、[M010 验收](M010-VALIDATION.md)、[M011 验收](M011-VALIDATION.md)。
-- `deliverables/M009-material-review-v1.0.0.zip`、`M010-event-management-v1.0.0.zip`、`M011-homepage-management-v1.0.0.zip` 保存当前可运行源码及模块文档，排除密钥／数据／测试运行产物；全部旧归档保留。真实独立项目投稿审核及最终部署整合另行安排。
-
-## M008 交接索引（原交付基线，后续业务见上）
-
-- `/admin`、`/admin/administrators`、`/admin/audit`：后台首页、超级管理员账号管理和只读权限审计；右侧菜单按真实权限显示入口，页面和 API 分别鉴权。
-- 角色 `super_admin` / `operator` 独立于 M001 Cookie；运营仅首页，超级管理员管理角色和读取审计。业务审核／活动发布／官网内容管理未接入。
-- 服务端 `getAdministrator`、`requireAdminPage`、账号与审计服务；浏览器 `adminRequest`；API 前缀 `/api/admin`，列表每页 20 条。
-- 新增 administrators、admin_audit_logs 和 0005 迁移；沿用共享数据库与写队列，修订校验、权限重查及审计原子提交。禁用不删除用户，禁止自停用／自降级，保护有效超级管理员。
-- `npm run admin:bootstrap -- --email <已注册邮箱>`：先停同目录服务，仅首次绑定，记录本机执行账号；同目标重跑不重新授权，不同目标拒绝。无公开初始化或提权接口。
-- M001 最小增加服务端既有账号邮箱查询；M002 旧受理白名单与材料状态保持原样。类型、Lint、构建及测试结果见 [M008 验收](M008-VALIDATION.md)，设计见 [M008 设计](M008-DESIGN.md)。
-- 验证：69 项服务、34 项浏览器回归和针对性复测通过，生产保护 2 项、票务禁用 1 项通过；原数据库 18 张旧表计数保持。
-- 源码留存 `deliverables/M008-admin-v1.0.0.zip`，排除账号运行数据、密钥和测试夹具数据，旧归档保留。生产邮件与业务后台模块继续分别安排。
-
-## M007 交接索引
-
-- 改造现有活动大厅，新增 teams、my-team、applications 三个活动子页面；侧栏、移动折叠、状态任务、资料和 FAQ。登录与报名完成后返回原组队意图。
-- 先报名、队长审批、一人一队、一份待处理申请；材料继续个人提交。公开招募不返回邮箱、联系方式、申请说明或私有材料。
-- 服务端 `forCenter(eventId).list/get/execute`、浏览器 `centerRequest(eventId)`；公开 GET teams，鉴权 GET/POST center；成员变动和编辑采用修订号，读写按活动隔离。
-- 新增三张组队表与迁移 0004，沿用共享连接、写队列和现有用户；M002 仅新增服务端报名展示投影及返回组队入口。
-- 配置位于活动 participantCenter；默认 2—4 人，组队期报名开放至提交截止。无新增业务环境变量；NEXT_DIST_DIR 可隔离测试构建。
-- 验证通过类型、Lint、构建、56 项服务测试、7 项相关浏览器测试及 1 项生产测试；见 [M007 验收](M007-VALIDATION.md)。正式邮件与生产上线另行安排。
-
-## 统一约定
-
-- 每个业务模块放在 `src/modules/<name>/`，提供模块说明及明确的公开入口；客户端类型和服务端秘密分开。
-- Next.js 页面与 API 继续挂载在 `src/app/`，路由层尽量薄，业务逻辑归所属模块。
-- 数据库连接、语言、站点导航和设计样式属于共享基础；新增表汇总到 `src/lib/schema.ts`，迁移统一追加到 `drizzle/`。
-- 认证用户以 `users.id` 关联。报名资格、订单付款、项目审核等状态由各自模块拥有，不加入认证会话。
-- 跨模块调用优先使用公开入口，不直接改其他模块内部表与状态；必要变更同时更新契约文档和相关回归验证。
-- 当前每个模块在同一网站内验证，所有模块完成后统一检查跨模块流程、部署和验收。模块完成不代表已具备生产上线条件。
-- 本地数据、环境变量、会话与开发邮件不作为交付资料复制或提交。
-
-项目当前状态见 [项目状态](PROJECT_STATUS.md)。
-
-## M006 交接索引
-
-- `/projects` 已替换原占位页，公开展示 12 个原创双语演示项目；搜索、分类、活动、分页及 URL 恢复，基础预览弹层支持焦点约束及关闭恢复。
-- `/projects/submit` 为公开双语说明页，真实投稿尚未开放；`/projects/[projectId]` 仅为下一详情模块的路由约定，本轮没有详情路由。
-- `getProjects` / `fetchProjects` 为服务端／浏览器读取入口；`GET /api/projects` 返回显式公开卡片、分页与筛选选项。配置、查询及公开投影与 UI 分离，后续可换接数据库。
-- 项目可独立或关联单场已发布活动；仅通过 M004 公开入口读取活动信息，不读取 M002 用户材料。未来投稿输入类型单独留存，不能作为现有 API 调用。
-- 首页项目文案已更新，共享简洁导航增加项目入口；无新依赖、环境变量、表、迁移或业务数据改动，M003 仍独立预览。
-- 设计与验收见 [M006 设计](M006-DESIGN.md)、[M006 验收](M006-VALIDATION.md)。源码归档 `deliverables/M006-project-board-v1.0.0.zip`，M001—M005 原包保留。
-
-## M005 交接索引
-
-- `/` 为完整组织官网长页：吸顶导航、原创 SVG 主视觉、组织介绍、主办方向、活动／项目入口及多栏页脚。双语、手机菜单、键盘、锚点与减少动态效果模式可用。
-- 活动共用 `/events`，继续 M004 → M002 流程；`/projects` 在 M005 交付时为公开双语即将上线页，现已由 M006 保留 URL 并接入演示展区。M003 仍独立预览。
-- `homepageConfig` 集中品牌、双语示例文案、目标及 metadata；`HomeView`、`ProjectsPlaceholder` 接收认证状态与页脚年份。共享 Header 新增 homepage 模式，默认保持 simple。
-- 不新增 API、数据库、迁移、环境变量或依赖。对照 M004 确认 13 份共享 DB／schema／迁移文件未变；现有用户和业务数据保留。
-- 类型、Lint、构建、44 项服务／组件、14 项 E2E、生产 1 项及开发票务禁用 1 项通过。详见 [验收记录](M005-VALIDATION.md)。留存 `deliverables/M005-homepage-v1.0.0.zip`，排除密钥与运行数据，M001—M004 原包不变。
-
-## M004 交接索引
-
-- 父入口 `/events` 已加入主站导航，保留首页；三个演示活动共用 M002 详情／报名／材料／受理流程。M003 仍不加入主站或参赛资格。
-- 代码配置 `event-board/config.ts` 为唯一活动注册表；公开 `GET /api/events` 返回显式公开 DTO，`q`／`year`／`stage` 筛选、排序与页面共用规则。阶段与参赛窗口独立。
-- M002 新增显式 `forEvent(id)`、`filesForEvent(id)`，浏览器 `createEventRequest(id)` 和 `EventProvider config`；页面、API 泛化为活动 ID，原 demo 地址和数据保留。未知／未发布返回 404，跨活动附件及受理拒绝。
-- 不新增表或迁移、不复制或重置数据；继续使用全活动正式／草稿引用保护及共享写协调器。无新增环境变量。
-- 验收：typecheck、Lint、生产构建、44 项服务／组件测试、11 项 E2E、生产 1 项及开发票务关闭开关 1 项通过；覆盖多活动并发隔离、正式受理／重提、边界／排序、URL 恢复、手机和平板及原模块回归。
-- 详见 [设计](M004-DESIGN.md)、[验收记录](M004-VALIDATION.md)。留存 `deliverables/M004-event-board-v1.0.0.zip`；原 M001—M003 包保留，新包排除真实密钥和运行数据。
-
-M001 的源码留存包位于 `deliverables/M001-auth-v1.0.0.zip`；内含模块与可运行网站基础，不含密钥或运行数据。
-
-## M002 交接索引
-
-- 范围：演示活动、个人报名成功即资格、独立草稿与正式提交、私有文件、三种受理操作；不含团队、支付、公开画廊、评分和飞书。
-- 公开入口：`server.ts` 服务端业务与文件接口，`client.ts` 浏览器请求入口，`contracts.ts` DTO，`config.ts` 演示配置。API 前缀 `/api/events/demo`；页面及完整契约见模块说明。
-- 数据所有权：`event_registrations`、`event_materials`、`event_assets`；依赖 M001 用户与会话，沿用共享数据库连接及写队列，追加 `0001_outstanding_molten_man.sql`，不重置用户数据。
-- 状态：`not_submitted` / `pending` / `needs_changes` / `processed`，最终结果 `accepted` / `rejected`；正式资料和草稿分离，修订号冲突拒绝覆盖，截止或已处理后只读。
-- 配置：`UPLOAD_PATH` 私有文件目录，`EVENT_REVIEWER_EMAILS` 受理账号白名单；内部备注仅受理人员可见。文件清理先停止相同 PGlite 目录的服务。
-- 验证：类型检查、Lint、构建、服务测试 18 项、浏览器 6 项、生产 1 项均已通过；生产依赖审计 0 漏洞。包括并发提交、持久化、权限及来源隔离、未保存导航提醒、冲突保留输入、受理刷新保留输入并锁定过期版本。
-- 留存目标：`deliverables/M002-event-participation-v1.0.0.zip`；M001 原包不变。本轮 M001 仅兼容接入 `next` 登录返回与共享写队列；全站整合另行进行。
-- 归档包含无真实密钥的 `.env.example`，排除真实环境配置、数据库、上传材料和用户数据。下一步等待用户指定模块。
-
-## M003 交接索引
-
-### 1.2.0 界面与结算更新
-
-- 三页共享主站 HACKATHON 导航、账户与语言入口和页脚，使用深色卡片／紫色／荧光绿视觉；保留开发开关和菜单入口。
-- 有效资料 500 毫秒防抖自动报价，一次确认依次创建订单与发起模拟支付；报价过期、政策变化和未知请求结果均需明确处理，不自动模拟成功。
-- 改票使用键盘可操作的确认弹窗；模拟面板可折叠，发起支付后展开。历史订单、路由、接口和数据库不变。
-- 浏览器结算状态集中于 `components/use-checkout.ts`。验收见 `M003-1.2-VALIDATION.md`，源码归档 `deliverables/M003-ticketing-v1.2.0.zip`；保留 1.0.0／1.1.0 原归档。
-
-### 1.1.0 接入更新
-
-- 右上角展开菜单增加购票（模拟），仅开发且预览开关开启时显示；三页通过购买门票／我的订单导航互通。
-- 新增 `/preview/ticketing/demo/orders` 与 `GET /api/preview/ticketing/demo/orders?page=1`；仅当前账号在当前演示活动的订单，快照摘要、每页 10 条、状态同步、详情／继续支付。
-- 不新增业务表、迁移或配置，原支付和权限规则延续。契约见 M003 README，验收见 `M003-1.1-VALIDATION.md`，归档 `deliverables/M003-ticketing-v1.1.0.zip`；下列 1.0.0 内容作为历史基线保留。
-
-- 两页独立预览：`/preview/ticketing/demo`、`/checkout` 子页；API 前缀 `/api/preview/ticketing/demo`。不接主站、真实收款或参赛资格；全部支付为开发模拟。
-- 公开入口 server.ts、client.ts、contracts.ts、config.ts；开发开关 ENABLE_TICKETING_PREVIEW 默认 false，production 始终关闭；签名密钥 TICKETING_WEBHOOK_SECRET 至少 32 字符。本地已开启，归档示例关闭。
-- 数据归属：库存、订单、幂等别名、预留、支付尝试、通知及模拟交易；追加 0002、0003 迁移，沿用共享连接与写队列，财务记录不随用户删除级联清除。
-- 订单 pending／paid／closed，支付状态独立；未知结果不盲目释放库存，关闭后迟到成功标记 reconciliationRequired。维护先停同目录 PGlite 服务，再运行 `npm run ticketing:maintain`（命令设置 NODE_ENV=development），不删除财务记录。
-- 最终 typecheck／lint／build、35 项服务测试、9 项 E2E、开发关闭开关 1 项及生产 1 项均通过，生产依赖审计 0 漏洞。源码归档 `deliverables/M003-ticketing-v1.0.0.zip` 已生成，M001／M002 原包不变；排除真实环境配置与用户数据，允许 `.env.example`。
+当前不提供真实收款、团队统一交稿、收藏回复评分、飞书同步和公网部署。各模块 README 记录现行接口／配置／测试，不把旧开发轨迹混入当前状态。

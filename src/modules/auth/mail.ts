@@ -2,10 +2,16 @@ import { randomUUID } from "node:crypto";
 import { desc } from "drizzle-orm";
 import { getDb } from "../../lib/db";
 import { devMails } from "./schema";
+import { smtpConfig } from "./smtp";
+
+export function isEmailLoginEnabled() {
+  return isDevMailEnabled() || smtpConfig() !== null;
+}
 
 export function isDevMailEnabled() {
   return (
     process.env.NODE_ENV === "development" &&
+    (!process.env.MAIL_TRANSPORT || process.env.MAIL_TRANSPORT === "dev") &&
     process.env.ENABLE_DEV_MAIL === "true"
   );
 }
@@ -17,6 +23,15 @@ export function createDevMail(
   createdAt: Date,
 ) {
   if (!isDevMailEnabled()) throw new Error("MAIL_DISABLED");
+  return createCodeMail(email, language, code, createdAt);
+}
+
+export function createCodeMail(
+  email: string,
+  language: "zh" | "en",
+  code: string,
+  createdAt: Date,
+) {
   return {
     id: randomUUID(),
     email,

@@ -1,7 +1,17 @@
 /** Shared schema registry. Add future domain schemas here without editing auth. */
-export { submittedProjects, projectVersions, projectAssets } from "../modules/project-submission/schema";
+export {
+  submittedProjects,
+  projectVersions,
+  projectAssets,
+} from "../modules/project-submission/schema";
 export { materialReviewPolicies } from "../modules/material-review/schema";
-export { externalIdentities, oidcFlows, identityRecoveryApprovals, oidcSessionContexts, identityAudit } from "../modules/auth/oidc/schema";
+export {
+  externalIdentities,
+  oidcFlows,
+  identityRecoveryApprovals,
+  oidcSessionContexts,
+  identityAudit,
+} from "./legacy-identity-schema";
 export { accountProfiles } from "../modules/auth/profile-schema";
 export {
   projectLikes,
@@ -38,4 +48,4 @@ export {
   ticketPaymentAttempts,
   ticketPaymentNotifications,
   mockPaymentTransactions,
-} from "../modules/ticketing/schema";
+} from "./legacy-ticketing-schema";

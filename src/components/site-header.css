@@ -60,12 +60,6 @@
 .sn-primary-nav a:hover {
   color: var(--purple);
 }
-.sn-primary-nav .sn-ticketing-link {
-  display: none;
-}
-.sn-primary-nav.is-open .sn-ticketing-link {
-  display: block;
-}
 .sn-nav-soon {
   display: none;
 }

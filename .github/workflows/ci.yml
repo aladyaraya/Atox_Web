@@ -37,6 +37,9 @@ jobs:
       - run: npm ci
       - name: Check tracked files and secret patterns
         run: npm run check:repository
+      - name: Audit current branch dependencies (high and critical block)
+        run: npm run check:security
+      - run: npm run check:boundaries
       - run: npm run lint
       - name: Generate current Next.js route types
         run: npx next typegen
@@ -45,6 +48,5 @@ jobs:
       - name: Install browser
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - run: npm run test:ticketing-disabled
       - run: npm run build
       - run: npm run test:production

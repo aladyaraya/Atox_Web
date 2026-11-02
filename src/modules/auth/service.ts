@@ -9,12 +9,20 @@ import {
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { getDb, serializeDatabaseWrite as serialized } from "../../lib/db";
 import { challenges, devMails, sendEvents, sessions, users } from "./schema";
-import { createDevMail, isDevMailEnabled } from "./mail";
+import {
+  createDevMail,
+  createCodeMail,
+  isDevMailEnabled,
+  isEmailLoginEnabled,
+} from "./mail";
+import { assertSmtpRecipient, deliverSmtp, smtpConfig } from "./smtp";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
-import { externalIdentities, oidcSessionContexts } from "./oidc/schema";
-import { getOidcConfig } from "./oidc/config";
+import {
+  externalIdentities,
+  oidcSessionContexts,
+} from "../../lib/legacy-identity-schema";
 import { AUTH_POLICY, SESSION_SECONDS } from "./policy";
 import type { AuthLanguage, AuthUser, SendCodeResponse } from "./contracts";
 export { AuthError } from "./errors";
@@ -40,7 +48,7 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 function requireMail() {
-  if (!isDevMailEnabled()) throw new AuthError("MAIL_DISABLED", 503);
+  if (!isEmailLoginEnabled()) throw new AuthError("MAIL_DISABLED", 503);
 }
 
 export async function sendCode(
@@ -52,7 +60,9 @@ export async function sendCode(
   const email = normalizeEmail(input);
   if (language !== "zh" && language !== "en")
     throw new AuthError("INVALID_REQUEST");
-  return serialized(async () => {
+  const smtp = smtpConfig();
+  if (smtp) assertSmtpRecipient(email, smtp);
+  const prepared = await serialized(async () => {
     const db = await getDb();
     return db.transaction(async (tx) => {
       const now = new Date();
@@ -119,16 +129,38 @@ export async function sendCode(
       await tx
         .insert(sendEvents)
         .values({ id: randomUUID(), email, ip, createdAt: now });
-      await tx
-        .insert(devMails)
-        .values(createDevMail(email, language, code, now));
+      if (isDevMailEnabled())
+        await tx
+          .insert(devMails)
+          .values(createDevMail(email, language, code, now));
       return {
-        ok: true as const,
-        retryAfter: AUTH_POLICY.resendIntervalSeconds,
-        expiresIn: AUTH_POLICY.codeLifetimeSeconds,
+        id,
+        mail: createCodeMail(email, language, code, now),
       };
     });
   });
+  if (smtp) {
+    try {
+      // Network calls never occupy the shared write queue or a transaction.
+      await deliverSmtp(email, prepared.mail.subject, prepared.mail.body);
+    } catch (error) {
+      await serialized(async () => {
+        await (
+          await getDb()
+        )
+          .update(challenges)
+          .set({ consumedAt: new Date() })
+          .where(eq(challenges.id, prepared.id));
+      });
+      // Keep the send reservation for rate limiting even after delivery failure.
+      throw error;
+    }
+  }
+  return {
+    ok: true,
+    retryAfter: AUTH_POLICY.resendIntervalSeconds,
+    expiresIn: AUTH_POLICY.codeLifetimeSeconds,
+  };
 }
 
 export async function verifyCode(input: string, code: string) {
@@ -239,13 +271,8 @@ export async function getUserByToken(
     )
     .limit(1);
   if (!result) return null;
-  if (result.oidcFingerprint) {
-    try {
-      if (getOidcConfig()?.fingerprint !== result.oidcFingerprint) return null;
-    } catch {
-      return null;
-    }
-  }
+  // The optional identity module is absent: never accept its old sessions.
+  if (result.oidcFingerprint) return null;
   return { id: result.id, email: result.email, createdAt: result.createdAt };
 }
 
