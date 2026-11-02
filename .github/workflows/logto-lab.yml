@@ -1,7 +1,7 @@
 name: M013 Logto isolation lab
 on:
   push:
-    paths: ["labs/logto-oidc/**", ".github/workflows/logto-lab.yml"]
+    branches: ["codex/module-m013-m014-oidc"]
   pull_request:
     paths: ["labs/logto-oidc/**", ".github/workflows/logto-lab.yml"]
   workflow_dispatch:
