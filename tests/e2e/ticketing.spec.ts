@@ -126,7 +126,7 @@ test("Changing selection closes unpaid order; late payment requires reconciliati
   request,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(root + "/checkout?ticketId=standard&quantity=1");
+  await page.goto(root + "/checkout?ticketId=early&quantity=1");
   await finishLogin(page, context, `ticket-late-${Date.now()}@example.com`);
   await fill(page);
   const order = await create(page);

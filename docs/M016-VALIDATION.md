@@ -14,11 +14,11 @@
 
 早期代码基线 [0525a4b 专项 CI](https://github.com/aladyaraya/Atox_Web/actions/runs/41425984120) 已通过：真实 PostgreSQL 迁移／认证／事务、生产镜像构建、Compose 实际角色权限、加密 pg_dump／干净目标恢复及恢复后的运行角色访问、两种 Caddy 配置检查、生产测试入口关闭。后续补充正式材料并发与附件隔离，最终结果另列于下。
 
-票务旧浏览器用例在成功下单路径选择了 2026-11-01 已结束的早鸟票，实际返回 ENDED。该成功路径独立改用标准票，不改售票规则／时间，不弱化校验。工作区其余既有票务实现及测试改动保持未提交，不作为本轮远端验收前提。
+票务旧浏览器用例在成功下单路径选择了 2026-11-01 已结束的早鸟票，实际返回 ENDED。本轮曾独立改用标准票；用户随后明确要求票务修复由另一个任务处理、本轮不提交，因此已通过后续提交撤出这行调整，PR 中不再包含票务实现或测试差异。所有本地票务改动原样保留，未暂存或覆盖。当前全站 CI 的该旧用例依赖独立票务任务处理；不得把旧基线的绿色结果当作撤出后的完整回归结论。
 
 本地已通过类型、Lint、149 项全量服务测试（含保留在工作区且不提交的另两项票务夹具测试）。在只包含已提交代码的独立工作区完成 59 项浏览器回归、1 项票务关闭、生产构建和 2 项生产保护，均通过。生产依赖升级并锁定 Next.js 16.4.3，生产依赖 audit 为零告警；完整开发依赖仍有 20 项 moderate 提醒，未使用 force 降级工具链。实际云服务测试不由 mocked SMTP／OSS 或 CI 容器替代。
 
-代码基线 `4a55326` 的 [完整 CI](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495018) 已通过：147 项服务、59 项浏览器、1 项票务关闭、类型、Lint、构建、2 项生产保护和仓库敏感文件扫描。[生产专项 CI](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495192) 的 5 项真实 PostgreSQL 测试、生产镜像、Compose 角色／恢复、Caddy／健康保护检查通过；[M014 OIDC 回归](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495410) 通过，生产仍禁用 OIDC。本次最后仅补验收及权限配置说明，不改变已验证业务代码。
+代码基线 `4a55326` 的 [完整 CI](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495018) 已通过：147 项服务、59 项浏览器、1 项票务关闭、类型、Lint、构建、2 项生产保护和仓库敏感文件扫描。[生产专项 CI](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495192) 的 5 项真实 PostgreSQL 测试、生产镜像、Compose 角色／恢复、Caddy／健康保护检查通过；[M014 OIDC 回归](https://github.com/aladyaraya/Atox_Web/actions/runs/41429495410) 通过，生产仍禁用 OIDC。上述为历史已验收代码基线；本次范围调整撤出票务测试修复后，M016 生产适配不变，最新全套回归需等待独立票务修复，不宣称当前 PR 已全部通过。
 
 ## 压测与恢复边界
 
