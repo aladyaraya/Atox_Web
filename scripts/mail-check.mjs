@@ -10,6 +10,7 @@ try {
   Object.assign(process.env, settings, {
     NODE_ENV: "development",
     MAIL_TRANSPORT: "smtp",
+    MAIL_LOCAL_SCOPE: "sandbox",
     ENABLE_LOGTO_LOGIN: "false",
     ENABLE_DEV_MAIL: "false",
     APP_ORIGIN: "http://127.0.0.1:3105",

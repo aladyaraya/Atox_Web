@@ -19,8 +19,10 @@ import { assertSmtpRecipient, deliverSmtp, smtpConfig } from "./smtp";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
-import { externalIdentities, oidcSessionContexts } from "./oidc/schema";
-import { getOidcConfig } from "./oidc/config";
+import {
+  externalIdentities,
+  oidcSessionContexts,
+} from "../../lib/legacy-identity-schema";
 import { AUTH_POLICY, SESSION_SECONDS } from "./policy";
 import type { AuthLanguage, AuthUser, SendCodeResponse } from "./contracts";
 export { AuthError } from "./errors";
@@ -269,13 +271,8 @@ export async function getUserByToken(
     )
     .limit(1);
   if (!result) return null;
-  if (result.oidcFingerprint) {
-    try {
-      if (getOidcConfig()?.fingerprint !== result.oidcFingerprint) return null;
-    } catch {
-      return null;
-    }
-  }
+  // The optional identity module is absent: never accept its old sessions.
+  if (result.oidcFingerprint) return null;
   return { id: result.id, email: result.email, createdAt: result.createdAt };
 }
 

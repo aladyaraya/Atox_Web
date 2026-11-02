@@ -1,57 +1,32 @@
-# 本地运行、验收与部署维护
+# 本机维护手册
 
-完整新机器启动、管理员初始化、入口及升级步骤见 [交接运行说明](HANDOFF.md)。
+主线使用 PGlite、私有磁盘和本机邮件；生产参考留在 M016 分支，本手册不指示采购或公网发布。
 
-## 安全运行基线
+## 数据和备份
 
-候选依赖与审计门禁见 [安全报告](SECURITY-DEPENDENCIES.md)，执行 `npm run check:security` 检查根及实验的全部／生产锁文件，高危／严重或审计不可用时失败；中危保留输出与待办。本机 OIDC 不启用、SMTP 不向陌生邮箱自动发送。正式上线条件见 [上线清单](RELEASE-READINESS.md)。
+配置、凭据、数据库和附件不上传。停止目标库所有使用进程后，备份完整 DB_PATH、匹配附件及配置引用，密钥另存。恢复使用对应整套资料，不删库、不重建用户、不混用不同时间点数据。
 
-Node 24、npm ci、自己的 .env.local；密钥仅服务端，至少 32 字符且认证／模拟支付独立。APP_ORIGIN 与访问域完全一致；127.0.0.1 和 localhost 是不同来源。单进程占用同一个 PGlite 数据目录，网站和维护 CLI 不能同时打开它。
+0000—0013 的 SQL、snapshot、journal 不能修改删除。历史表元数据仅兼容用途；新增结构只能追加，生成迁移时检查没有误删旧表。
 
-默认 .data/pglite、.data/uploads 是私有状态，受 .gitignore 排除。若自定义为仓库其他位置，先把实际目录加入本地 .git/info/exclude 或 .gitignore，再检查暂存清单；私有目录禁止位于 public 中。新机器从空库正常应用迁移，不复制开发人员已有用户／会话或管理员。
+## 日常运行
 
-## 验收隔离
+npm run dev 启动本机官网。website SMTP 需显式配置、回环地址、选定私有数据根目录及 TLS 465，且关闭开发邮箱。缺失／失败不退回开发邮件。production 禁止本机 SMTP，不能解除限制冒充正式邮件方案。
 
-服务测试通过临时目录保存数据，并在结束关闭连接，不打开本地实际 DB。默认 Playwright 配置重导出 admin 配置：tests/fixtures/admin-server.ts 先在独立 .data/admin-e2e-时间戳目录建立真实验证的测试账号与管理员，再关闭 DB 后启动 3100 网站。凭据 JSON 是运行夹具，禁止提交。
-
-| 套件 | 端口 | 数据／输出 |
-| --- | --- | --- |
-| npm test | 无网站端口 | 各测试临时目录 |
-| test:e2e | 3100 | 独立 admin-e2e 数据；.next-ticket-orders-e2e |
-| test:ticketing-disabled | 3102 | 独立禁用数据；继承 NEXT_DIST_DIR |
-| build / test:production | 3101（start） | 隔离生产验收数据；build/start 必须同 NEXT_DIST_DIR |
-
-完整顺序见根 README。测试套件串行运行，端口已有监听就排查占用，不启用复用真实服务器。生产测试先构建；下一次 build/start 使用相同输出目录。可在 PowerShell 中设置 `$env:NEXT_DIST_DIR='.next-ci'` 和 `$env:DB_PATH='.data/maintenance-build/db'`、`$env:UPLOAD_PATH='.data/maintenance-build/uploads'`，隔离当前 3000 网站；构建结束后移除本 shell 的临时变量。CI 同样隔离，并由测试配置覆盖开发预览开关与测试密钥。
-
-浏览器套件不仅共享默认报告根目录，还可能清理其他套件的 trace；不得并行使用默认输出目录。排错时可指定 `--output=.data/qa-模块名-套件名`。新增非认证测试优先复用隔离服务器中已验证的 fixture 身份，保留必要真实登录路径，不通过放宽原验证码每来源限额来扩大回归套件。
-
-`npx next typegen` 可在新 checkout 生成 next-env 和路由类型，再运行 typecheck。不提交 Next.js 自动产物。失败查终端和本地 test-results，trace 可能包含登录 Cookie／填写资料，不能发到公开 issue 或默认上传到 Actions 附件。
-
-## 迁移与备份
-
-getDb 初始化自动迁移；人工 npm run db:migrate 读取 .env.local。结构变更生成新迁移，审查 SQL、外键、唯一约束、journal 和 snapshot；不修改已应用的历史迁移（当前 0000—0012）。迁移前停止所有使用目标 DB 的进程并备份完整 DB_PATH 与 UPLOAD_PATH 到仓库外受控位置，包含匹配时间点的文件、配置引用和恢复说明，密钥单独受控保存。
-
-迁移后重启网站，检查公开页面、用户／会话及相关材料。失败先停服诊断，恢复应使用已验证的成套备份，不能混用不同时间点数据库和附件。没有自动回滚命令，不用删表、重置数据或重新 bootstrap 解问题。
+3105 通过 mail:preview 启动，使用独立数据。MAIL_TEST_RECIPIENT 是验收邮箱；website 登录使用表单的单个邮箱，服务端限流保留。不记录验证码原文。
 
 ## 维护命令
 
-M014 的 `oidc:preview` 只启动 3104／独立沙箱。旧账号关联审批 `oidc:approve-recovery` 必须先停止同 DB 网站，独立核验所有权、核对流程及目标 UUID、显式加载正确隔离或可信 OIDC 环境，再由原浏览器确认；不自动读取真实 .env.local。配置／操作细节见 [M014 README](../src/modules/auth/oidc/README.md)。关闭功能仅撤销 OIDC 接入可用性，不重新开放已关联账号的开发 OTP；不要通过解绑／删表当回退。
+- db:migrate：应用追加迁移，先停目标网站并备份。
+- admin:bootstrap：首位管理员绑定已有可信账号，后续走后台。
+- events:cleanup-files：清理孤儿文件，保护所有活动草稿及正式引用。
+- projects:cleanup-files：保护草稿、不可变送审历史及公开版本。
+- mail:check：只向配置的验收邮箱发测试邮件。
+- check:security：审计本项目全部／运行依赖；模块分支有独立实验时一并检查，高危、严重或审计不可用均失败。
 
-- events:cleanup-files：超过 24 小时的孤儿文件；保护所有活动正式材料及草稿有效引用。
-- projects:cleanup-files：项目私有目录超过 24 小时的孤儿文件；保护全部草稿、不可变送审历史与公开版本引用。
-- ticketing:maintain：开发模拟支付查单、关单、预留处理；未知状态保留且继续核对，不删除财务历史。必须启用开发预览。
-- admin:bootstrap：首位超级管理员一次性绑定已验证账号，停服执行，记录本机操作者；同目标重复不恢复禁用或提权。之后用授权后台管理。
+前四项与同库网站互斥执行。清理不删除有效引用附件。真实账号、密钥和运行报告不进入提交。
 
-以上均与网站互斥占用同数据目录。不要发布运行数据、实际管理员邮箱或维护输出中的个人信息。
+## 排障
 
-## 开发 HMR 循环排错
+打不开先查进程、端口及日志，不重置数据库。HMR 连续刷新先停对应进程，备份确认的构建缓存再重启，只处理工作区内生成目录。未知写入结果先查状态，避免盲目重放创建、送审和发布。
 
-登录页若反复整页重载，先区分 HTTP 重定向与 HMR。此前实际发现 WebSocket HMR hash mismatch；停止该工作区的 next dev 和相关子进程，将对应 .next/dev 生成缓存移动到工作区内备份后重启解决。只处理确认的构建缓存，不修改认证数据、会话或业务权限。Windows 递归移动／删除前验证绝对路径位于目标工作区，不一并删除 .data 或 .env.local。
-
-## 生产模式与正式上线
-
-npm run build + npm start 是当前支持的 Node 运行路径，使用服务端接口，不能静态导出到 GitHub Pages。当前 start 默认监听本机，远程访问需要另行确定代理／网络配置。部署包需包含 Next 输出、运行依赖、public 和完整 drizzle 目录；数据目录与上传目录应位于可持久化私有存储，不能只复制生成页面。
-
-目前生产模式开发邮箱／模拟票务 404，验证码发送／验证 503 MAIL_DISABLED；即使开关 true 也不能恢复开发登录。正式上线先另行开发真实邮件和故障投递、HTTPS／同源／代理、生产数据库迁移、公开／私有存储、备份恢复和安全验收。PGlite 默认模式不支持多副本或临时 serverless 文件系统，PostgreSQL 迁移不属于本次工程整理。
-
-仓库没有生产部署工作流、生产密钥或容器配置。维护者后续确定平台和生产条件再实施；本次 CI 不部署、不收款、不访问实际用户数据库。
+trace、会话夹具、邮件正文留在本地忽略目录。旧测试结果不能替代当前版本验证，实际证据见 CORE-CONSOLIDATION-VALIDATION.md。

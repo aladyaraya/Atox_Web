@@ -15,23 +15,18 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "events:cleanup-files": "tsx --env-file=.env.local scripts/cleanup-event-files.ts",
-    "ticketing:maintain": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/ticketing-maintain.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "test:production": "playwright test --config=playwright.production.config.ts",
-    "test:ticketing-disabled": "playwright test --config=playwright.ticketing-disabled.config.ts",
     "admin:bootstrap": "tsx --env-file=.env.local scripts/admin-bootstrap.ts",
-    "oidc:preview": "node scripts/oidc-preview.mjs",
-    "oidc:approve-recovery": "cross-env NODE_ENV=development tsx scripts/oidc-approve-recovery.ts",
-    "test:oidc-website": "playwright test --config=playwright.oidc.config.ts",
     "projects:cleanup-files": "tsx --env-file=.env.local scripts/cleanup-project-files.ts",
     "mail:preview": "node scripts/mail-preview.mjs",
     "mail:check": "node --import tsx scripts/mail-check.mjs",
-    "check:security": "node scripts/audit-dependencies.mjs"
+    "check:security": "node scripts/audit-dependencies.mjs",
+    "check:boundaries": "node scripts/check-boundaries.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@logto/node": "4.0.1",
     "drizzle-orm": "^0.45.3",
     "next": "16.4.3",
     "nodemailer": "^10.3.1",
@@ -56,5 +51,6 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
-  }
+  },
+  "portalProfile": "core"
 }

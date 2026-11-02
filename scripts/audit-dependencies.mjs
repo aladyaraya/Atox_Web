@@ -1,12 +1,16 @@
 /** Lockfile audit only; no installation, force fixes, secrets or live application data. */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { existsSync } from "node:fs";
 
 const npm = process.env.npm_execpath;
 if (!npm)
   throw new Error("Run npm run check:security so the current npm CLI is used.");
 let failed = false;
-for (const project of [".", "labs/logto-oidc"]) {
+for (const project of [
+  ".",
+  ...(existsSync("labs/logto-oidc/package.json") ? ["labs/logto-oidc"] : []),
+]) {
   for (const production of [false, true]) {
     const label = `${project} ${production ? "production" : "all"}`;
     const result = spawnSync(

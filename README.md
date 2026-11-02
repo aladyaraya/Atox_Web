@@ -1,140 +1,42 @@
-# HACKATHON · Atox Web
+# HACKATHON · 官网核心主线
 
-上线前候选基线：[审查报告](docs/BASELINE-AUDIT.md) · [完整用户流程](docs/USER-FLOWS.md) · [依赖安全](docs/SECURITY-DEPENDENCIES.md) · [上线阻塞清单](docs/RELEASE-READINESS.md) · [验证与 PR 基线](docs/BASELINE-VALIDATION.md)。本轮仅 PR，不合并／部署；原 main 与候选不可混称。
+面向国内外创造者的本机全栈网站：首页、活动展板、报名与个人材料、组队、项目投稿展示、点赞评论及官方后台。当前用于本机开发与验收，未部署公网。演示品牌和初始内容不代表真实活动。
 
-本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP）。默认单收件人；显式设置 `MAIL_TEST_ALLOW_ANY_RECIPIENT=true` 可填写任意单个有效邮箱，当前本机已开启。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及验证见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。
-
-M015 项目投稿与管理已接入：[提交项目](http://localhost:3000/projects/submit)、[我的项目](http://localhost:3000/account/projects)、[后台项目管理](http://localhost:3000/admin/projects)。支持正式投稿、审核、预览、发布和下架；通过不自动公开，PDF 仅供审核。见 [模块说明](src/modules/project-submission/README.md)、[验收](docs/M015-VALIDATION.md)。
-
-面向创造者的黑客松活动网站，采用单仓库、模块化 Next.js 全栈结构。临时品牌和活动／项目内容是明确标注的演示数据。当前用于本地开发与验收，尚未生产上线。
-
-已实现邮箱认证与公开昵称、活动展板、个人报名与私有材料、选手组队、官网首页、演示项目展区与完整详情、点赞／评论及管理员权限／材料审核／评论管理／活动和首页发布。真实项目投稿、审核及发布已由 M015 实现。票务仅为开发模式模拟支付；回复／收藏、真实收款、飞书同步、团队统一提交和最终全站整合尚未完成。
-
-[项目状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构与边界](docs/ARCHITECTURE.md) · [协作约定](CONTRIBUTING.md) · [维护手册](docs/OPERATIONS.md) · [交接运行说明](docs/HANDOFF.md) · [验证记录](docs/REPOSITORY-VALIDATION.md)
-
-M009 现为 1.1.2：[材料审核总表](http://localhost:3000/admin/materials) 集中展示正式提交、筛选与统计，支持撤回通过及内部协调。无需先配置审核时间，默认跟随活动起止；超级或运营管理员可选择不限时、自定义或暂停，变更需原因并审计。后台首页、侧栏及列表均标明总表入口；草稿不计入，原提交截止不变，不自动公开项目。见 [说明](src/modules/material-review/README.md)、[复核验收](docs/M009-1.1.2-VALIDATION.md)。
-
-新增 [M013 隔离实验](labs/logto-oidc/README.md) 与 [M014 官网接入](src/modules/auth/oidc/README.md)：官方 SDK 经 M001 映射本地身份，旧账号需独立证据，不凭同邮箱合并。`npm run oidc:preview` 在 3104 用独立测试数据，不切换原真实配置。Logto 需要 Docker／Compose、独立 PostgreSQL／Mailpit，普通网站开发仍无需 Docker。本阶段生产关闭。
-
-## 技术与环境
-
-- Next.js App Router、React、TypeScript、Tailwind CSS；服务端 Node runtime。
-- Drizzle + 本地持久化 PGlite；无需 Docker 或独立数据库安装。
-- Node.js >=22；团队和 CI 统一使用 Node **24**（`.nvmrc`），npm 和 `package-lock.json`。
-- Git；浏览器验收需要 Playwright Chromium。Windows PowerShell、macOS／Linux 均可开发。
+模拟售票 M003、统一登录 M013/M014 保存在独立分支；生产适配 M016 暂缓。功能及 PR 归属以 [分支索引](docs/BRANCHES-AND-PRS.md) 为准。
 
 ## 安装与启动
 
-```sh
-git clone https://github.com/aladyaraya/Atox_Web.git
-cd Atox_Web
-npm ci
-```
+Node 24、npm、Git。执行 `npm ci`；新机器才复制 .env.example 为 .env.local，生成随机 AUTH_SECRET，再运行 `npm run dev`。默认 http://localhost:3000，APP_ORIGIN 必须与浏览器一致。已有环境、数据库、账号和附件不能覆盖。默认 PGlite 本机单进程，无需 Docker。
 
-首次配置，在 PowerShell 中执行 `Copy-Item .env.example .env.local`，macOS／Linux 执行 `cp .env.example .env.local`。**已有 `.env.local` 时保留原文件**。生成密钥并填入 AUTH_SECRET；如果开启模拟购票，为 TICKETING_WEBHOOK_SECRET 单独生成另一个值：
+## 真实本机邮箱
 
-```sh
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-npm run dev
-```
+日常官网使用 MAIL_TRANSPORT=smtp、MAIL_LOCAL_SCOPE=website、ENABLE_DEV_MAIL=false，私下配置 QQ SMTP TLS 465。旧账号、管理员、AUTH_SECRET 和数据路径保留。详细参数见 [认证模块](src/modules/auth/README.md)。
 
-访问 http://localhost:3000。邮箱验证码在 `/dev/mail` 查看，不发送真实邮件。`APP_ORIGIN` 必须与浏览器的协议、主机、端口完全一致；默认仅监听 127.0.0.1。修改端口／主机后同步配置并重启。
+`npm run mail:preview` 保留独立 3105 沙箱，使用其自己的数据；`npm run mail:check` 只向自己配置的验收邮箱发测试邮件。production 始终禁用本轮本机投递，不是已完成的公网登录服务。密钥不提交或通过聊天发送。
 
-## 目录与模块
+## 目录
 
-```text
-src/app/                  页面、API、路由适配；业务逻辑放模块内
-src/modules/              M001—M015（M010/M011 共用发布核）
-labs/logto-oidc/           M013 隔离验证工程；独立依赖、容器和测试数据
-src/components/           共享导航、语言、布局及兼容导出
-src/lib/                  共享 DB、schema 聚合和兼容适配
-drizzle/                  0000—0012 追加迁移、snapshot 和 journal
-public/                   原创 SVG 等公开资产；禁止放私有附件
-tests/                    服务／规则、隔离浏览器、生产禁用测试
-scripts/                  迁移、受控初始化、维护和提交扫描
-docs/                     当前状态、模块、设计、验收和运维约定
-产品相关/                 产品方案；属于设计资料，不代表均已实现
-.github/                  CI 和 PR 模板
-.data/                    本地 DB、私有文件、夹具及日志（不入 Git）
-deliverables/             原模块源码快照，仅本地保留（不入 Git）
-```
-
-| 模块 | 职责 | 说明 |
-| --- | --- | --- |
-| M001 | 邮箱验证码、注册／登录、会话 | [auth](src/modules/auth/README.md) |
-| M002 | 活动个人报名、草稿／正式材料、私有附件 | [event-participation](src/modules/event-participation/README.md) |
-| M003 | 开发模拟购票、订单及支付维护 | [ticketing](src/modules/ticketing/README.md) |
-| M004 | 活动目录、公开配置和阶段筛选 | [event-board](src/modules/event-board/README.md) |
-| M005 | 长页首页与演示内容基线 | [homepage](src/modules/homepage/README.md) |
-| M006 | 公开项目卡片、筛选、详情与 M015 发布源 | [project-board](src/modules/project-board/README.md) |
-| M007 | 选手中心、招募、队伍和申请 | [participant-center](src/modules/participant-center/README.md) |
-| M008 | 管理员授权与权限审计 | [admin](src/modules/admin/README.md) |
-| M009 | 正式材料审核与业务审计 | [material-review](src/modules/material-review/README.md) |
-| M010 / M011 | 结构化活动／首页草稿、预览、发布与下架 | [content-management](src/modules/content-management/README.md) |
-| M012 | 项目详情接入、点赞、一级评论与后台管理 | [project-interaction](src/modules/project-interaction/README.md) |
-| M013 | Logto＋OIDC 第一阶段：隔离验证与接入准备 | [独立实验](labs/logto-oidc/README.md) |
-| M014 | 官网 Logto 与原账号映射 | [M001 内部适配](src/modules/auth/oidc/README.md) |
-| M015 | 用户项目投稿、审核、授权预览与发布 | [project-submission](src/modules/project-submission/README.md) |
-
-## 配置
-
-以 [.env.example](.env.example) 为变量清单，不提交真实配置。服务端密钥不得增加 NEXT_PUBLIC_ 前缀。
-
-| 变量 | 默认／用途 |
+| 目录 | 内容 |
 | --- | --- |
-| AUTH_SECRET | 必填，至少 32 字符的随机值；验证码 HMAC 密钥 |
-| APP_ORIGIN | `http://localhost:3000`，修改请求唯一同源地址 |
-| ENABLE_DEV_MAIL | 示例 true；仅 development 可用；公众不能访问开发邮箱 |
-| DB_PATH | `.data/pglite`；PGlite 私有持久化目录 |
-| UPLOAD_PATH | `.data/uploads`；必须在 public 以外 |
-| TRUST_PROXY | false；仅清除并重写转发头的可信代理后可开 |
-| ENABLE_TICKETING_PREVIEW | false；仅 development 显式 true 开启模拟模块 |
-| TICKETING_WEBHOOK_SECRET | 模拟支付启用时必填、至少 32 字符、与认证密钥独立 |
-| NEXT_DIST_DIR | 可选构建目录，默认 `.next`；隔离验收可用 `.next-ci` |
+| src/app | 页面与 API 适配 |
+| src/modules | 在用业务；M010/M011 共用发布核 |
+| src/components | 共用导航、语言、布局 |
+| src/lib | 数据库连接、写协调器、文件校验和历史表兼容声明 |
+| drizzle | 0000—0013 追加迁移，旧 SQL 不修改 |
+| public | 公开资产，禁止放私有附件 |
+| tests | 核心服务、浏览器、生产保护与模块边界测试 |
+| scripts | 迁移、初始化、维护、邮件及安全检查 |
+| docs | 当前维护说明、设计和验收 |
+| .data | 本机数据库、附件、夹具、日志，不入 Git |
 
-NODE_ENV 由 Next.js 设置。ADMIN_FIXTURE_FILE 仅由测试配置生成。旧 EVENT_REVIEWER_EMAILS 已废弃；当前审核通过有效管理员角色授权。仓库不包含任何已有管理员、账号、会话或订单数据。
+## 验证
 
-## 验证与 CI
+依次运行 `npm run check:repository`、`npm run check:security`、`npm run lint`、`npx next typegen`、`npm run typecheck`、`npm test`、`npm run test:e2e`、`npm run build`、`npm run test:production`。使用隔离数据，不复用真实服务。NEXT_DIST_DIR 可隔离构建；build 与 start 必须使用同一目录。
 
-```sh
-npm run lint
-npx next typegen
-npm run typecheck
-npm test
-npx playwright install chromium
-npm run test:e2e
-npm run test:ticketing-disabled
-npm run build
-npm run test:production
-```
+[当前状态](docs/PROJECT_STATUS.md) · [模块登记](docs/MODULES.md) · [架构](docs/ARCHITECTURE.md) · [本机接手](docs/HANDOFF.md) · [维护](docs/OPERATIONS.md) · [协作](CONTRIBUTING.md) · [本次验收](docs/CORE-CONSOLIDATION-VALIDATION.md)
 
-提交前暂存拟提交文件，再运行 `npm run check:repository`，扫描 Git index 的真实待提交内容。它检查禁止路径、常见凭据模式及是否复制本地密钥，是人工复核的补充，不能保证识别所有敏感数据。
+## 数据及边界
 
-GitHub Actions 在 push／PR 执行以上检查，使用 Node 24、`npm ci`、隔离数据库／构建和 Chromium，不需要业务密钥、真实账号或生产访问。测试端口为 3100／3101／3102；不要并行启动多个浏览器套件。详细隔离和排错见 [维护手册](docs/OPERATIONS.md) · [交接运行说明](docs/HANDOFF.md)。测试报告和认证 trace 留在本地，不上传为 CI 附件。
+共享连接和迁移历史保留，首次建库不创建真实用户或管理员。旧票务和外部身份表仅保留兼容声明，不提供对应功能。旧外部身份绑定不自动解除，旧 OIDC 会话不会在主线生效。
 
-## 数据库与管理员维护
-
-`src/lib/db.ts` 提供进程内连接单例及跨模块写队列；首次 getDb 自动应用 `drizzle/` 中尚未应用的迁移。相同数据目录只允许一个 Node 进程占用。变更表结构后执行 `npm run db:generate`，审查新增 SQL、snapshot、journal 一并提交；已应用迁移禁止改写。
-
-人工执行以下命令前，先停止占用相同 DB_PATH 的网站，备份 DB 和私有上传目录：
-
-```sh
-npm run db:migrate
-npm run events:cleanup-files
-npm run projects:cleanup-files
-npm run ticketing:maintain
-```
-
-命令读取 `.env.local`；票务维护仍需开发预览开启。禁止删数据、重置库存或改历史迁移来处理故障。维护后重启网站，检查会话、公开页和相关流程。
-
-首位管理员必须先完成正常邮箱验证，然后停服执行 `npm run admin:bootstrap -- --email registered@example.com`。这是一次性初始化，不是恢复或提权通道。后续管理员由超级管理员在 `/admin/administrators` 授权；权限实时从数据库核验，不写进认证 Cookie。不要将实际管理员邮箱留在源码或文档。
-
-## 部署现状
-
-目前支持本地单进程 Node 服务。`npm run build` 后 `npm start` 可用于生产模式验收；认证 API 和文件接口需要服务端，不能发布为 GitHub Pages 静态站。CI 只验证，不部署。
-
-生产模式 `/dev/mail` 和模拟购票均为 404，发送／验证验证码返回 503 MAIL_DISABLED。完整上线须另行实现真实邮件及失败投递、HTTPS／域名和来源配置、正式数据库及并发设计、对象存储／备份和真实支付对账。本地 PGlite 不能直接扩展为多副本或共享 serverless 数据库；正式 PostgreSQL 迁移尚未实施。详见 [维护与部署](docs/OPERATIONS.md)。
-
-## 多人协作
-
-默认基于最新 main 建 `codex/<task>`，也支持团队约定的 `feat/*`、`fix/*`、`docs/*` 或 `chore/*` 分支，PR 描述最终行为、验证及兼容影响；不得强制推送共享分支。模块变更同步 README、状态和登记表。发布通过独立审查和标签标记，源码托管不代表生产上线；历史本地归档保留，后续用 Git commit／tag 追踪。详见 [CONTRIBUTING](CONTRIBUTING.md)。仓库暂无授权开源许可证，不能将 private 字段或私有仓库误解为开源许可。
+私有附件通过授权接口访问。生产数据库、云存储和部署草稿仅在 [M016 分支](https://github.com/aladyaraya/Atox_Web/tree/codex/m016-production-readiness)。本轮不采购、不部署，不复制私人数据到模块分支。

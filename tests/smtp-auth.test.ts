@@ -80,6 +80,7 @@ after(async () => {
     throw new Error("Refusing cleanup outside SMTP sandbox");
   await rm(root, { recursive: true });
 });
+
 const hasCode = (code: string) => (e: unknown) =>
   (e as { code: string }).code === code;
 async function reset() {
@@ -100,6 +101,41 @@ test("SMTP is local-only, fails closed, never exposes a development inbox", () =
   ])
     assert.equal(smtpConfig({ ...process.env, ...patch }), null);
 });
+test("Website SMTP is explicit, loopback-only and preserves the selected private data directory", () => {
+  const website = {
+    ...process.env,
+    MAIL_LOCAL_SCOPE: "website",
+    ENABLE_DEV_MAIL: "false",
+    DB_PATH: path.resolve(".data/website/db"),
+  };
+  assert.equal(smtpConfig(website)?.allowAnyRecipient, true);
+  assert.equal(smtpConfig(website)?.scope, "website");
+  for (const change of [
+    { ENABLE_DEV_MAIL: "true" },
+    { NODE_ENV: "production" },
+    { APP_ORIGIN: "http://external.example.test" },
+    { DB_PATH: path.resolve("outside-db") },
+    { MAIL_LOCAL_SCOPE: "unknown" },
+  ])
+    assert.equal(smtpConfig({ ...website, ...change }), null);
+  const sharedRoot = path.resolve("../other-local-website/.data");
+  assert.ok(
+    smtpConfig({
+      ...website,
+      MAIL_WEBSITE_DATA_ROOT: sharedRoot,
+      DB_PATH: path.join(sharedRoot, "db"),
+    }),
+  );
+  assert.equal(
+    smtpConfig({
+      ...website,
+      MAIL_WEBSITE_DATA_ROOT: sharedRoot,
+      DB_PATH: path.join(sharedRoot, "../outside"),
+    }),
+    null,
+  );
+});
+
 test("Real transport contract registers and reuses an account without plaintext persistence", async () => {
   await reset();
   const response = await auth.sendCode("recipient@example.com", "en", "local");
@@ -238,4 +274,46 @@ test("Opt-in accepts different domains, keeps invalid-address checks and service
     auth.sendCode("participant@gmail.com", "zh", "local"),
     hasCode("MAIL_RECIPIENT_NOT_ALLOWED"),
   );
+});
+
+test("Daily website SMTP logs into the existing user ID without creating an inbox or replacing the database", async () => {
+  const keys = ["MAIL_LOCAL_SCOPE", "ENABLE_DEV_MAIL", "APP_ORIGIN"];
+  const saved = keys.map((key) => process.env[key]);
+  try {
+    Object.assign(process.env, {
+      MAIL_LOCAL_SCOPE: "website",
+      ENABLE_DEV_MAIL: "false",
+      APP_ORIGIN: "http://localhost:3000",
+    });
+    const db = await getDb();
+    await reset();
+    await auth.sendCode("daily@example.test", "zh", "daily-one");
+    const first = await auth.verifyCode(
+      "daily@example.test",
+      body.match(/\b\d{6}\b/)![0],
+    );
+    await reset();
+    await auth.sendCode("daily@example.test", "en", "daily-two");
+    const second = await auth.verifyCode(
+      "daily@example.test",
+      body.match(/\b\d{6}\b/)![0],
+    );
+    assert.equal(second.user.id, first.user.id);
+    assert.equal((await auth.getUserByToken(first.token))?.id, first.user.id);
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(users)
+          .where(eq(users.email, "daily@example.test"))
+      ).length,
+      1,
+    );
+    assert.equal((await db.select().from(devMails)).length, 0);
+  } finally {
+    keys.forEach((key, index) => {
+      if (saved[index] === undefined) delete process.env[key];
+      else process.env[key] = saved[index];
+    });
+  }
 });

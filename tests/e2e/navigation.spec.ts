@@ -44,7 +44,6 @@ test("Home, events and projects share navigation and accessible menu behavior", 
       "Home",
       "Events",
       /Projects/,
-      "Tickets (Demo)",
     ]);
     await header
       .getByRole("navigation")

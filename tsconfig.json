@@ -38,7 +38,6 @@
   "exclude": [
     "node_modules",
     ".next-*/**",
-    ".next-ticket-orders-e2e",
-    ".next-material-review-e2e"
+    ".data/**"
   ]
 }

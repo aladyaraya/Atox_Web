@@ -30,6 +30,7 @@ try {
     ...settings,
     NODE_ENV: "development",
     MAIL_TRANSPORT: "smtp",
+    MAIL_LOCAL_SCOPE: "sandbox",
     ENABLE_DEV_MAIL: "false",
     ENABLE_LOGTO_LOGIN: "false",
     ENABLE_TICKETING_PREVIEW: "false",

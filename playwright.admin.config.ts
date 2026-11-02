@@ -23,7 +23,7 @@ export default defineConfig({
       NEXT_TELEMETRY_DISABLED: "1",
       ADMIN_FIXTURE_FILE: fixtureFile,
       DB_PATH: path.join(path.dirname(fixtureFile), "db"),
-      NEXT_DIST_DIR: ".next-ticket-orders-e2e",
+      NEXT_DIST_DIR: ".next-core-e2e",
       ENABLE_DEV_MAIL: "true",
       APP_ORIGIN: "http://127.0.0.1:3100",
       AUTH_SECRET: "admin-browser-test-only-secret-at-least-32-characters",
@@ -31,6 +31,7 @@ export default defineConfig({
       EVENT_REVIEWER_EMAILS: "reviewer@example.com",
       UPLOAD_PATH: path.join(path.dirname(fixtureFile), "uploads"),
       ENABLE_TICKETING_PREVIEW: "true",
+      ENABLE_LOGTO_LOGIN: "true",
       TICKETING_WEBHOOK_SECRET:
         "admin-ticketing-test-only-secret-at-least-32-characters",
     },

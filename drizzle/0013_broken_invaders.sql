@@ -1,0 +1,1 @@
+CREATE INDEX "send_events_created_at_idx" ON "send_events" USING btree ("created_at");

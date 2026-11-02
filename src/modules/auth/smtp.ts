@@ -6,7 +6,7 @@ import { AuthError } from "./errors";
 const mailboxPattern =
   /^[^\s@<>,;:"()[\]\\]+@[^\s@<>,;:"()[\]\\]+\.[^\s@<>,;:"()[\]\\]+$/;
 
-/** This adapter is intentionally limited to the isolated local email test. */
+/** Explicit local scopes; never a production transport. */
 export function smtpConfig(
   env: Record<string, string | undefined> = process.env,
 ) {
@@ -14,19 +14,27 @@ export function smtpConfig(
     return null;
   try {
     const origin = new URL(env.APP_ORIGIN || "");
-    const root = path.resolve(".data/mail-test");
+    const scope = env.MAIL_LOCAL_SCOPE || "sandbox";
+    if (scope !== "sandbox" && scope !== "website") return null;
+    const root = path.resolve(
+      scope === "website"
+        ? env.MAIL_WEBSITE_DATA_ROOT || ".data"
+        : ".data/mail-test",
+    );
     const relative = path.relative(
       root,
       path.resolve(env.DB_PATH || ".data/pglite"),
     );
     const email = mailboxPattern;
-    const allowAnyRecipient = env.MAIL_TEST_ALLOW_ANY_RECIPIENT === "true";
+    const allowAnyRecipient =
+      scope === "website" || env.MAIL_TEST_ALLOW_ANY_RECIPIENT === "true";
     if (
       origin.protocol !== "http:" ||
       !["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname) ||
       !relative ||
       relative.startsWith("..") ||
       path.isAbsolute(relative) ||
+      (scope === "website" && env.ENABLE_DEV_MAIL !== "false") ||
       env.ENABLE_LOGTO_LOGIN === "true" ||
       env.SMTP_HOST !== "smtp.qq.com" ||
       env.SMTP_PORT !== "465" ||
@@ -38,6 +46,7 @@ export function smtpConfig(
     )
       return null;
     return {
+      scope,
       host: env.SMTP_HOST,
       user: env.SMTP_USER!,
       pass: env.SMTP_PASSWORD.trim(),
