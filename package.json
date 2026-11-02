@@ -26,7 +26,12 @@
     "test:oidc-website": "playwright test --config=playwright.oidc.config.ts",
     "projects:cleanup-files": "tsx --env-file=.env.local scripts/cleanup-project-files.ts",
     "mail:preview": "node scripts/mail-preview.mjs",
-    "mail:check": "node --import tsx scripts/mail-check.mjs"
+    "mail:check": "node --import tsx scripts/mail-check.mjs",
+    "test:postgres": "tsx --test tests/postgres/*.test.ts",
+    "deploy:preflight": "node --import tsx scripts/production-preflight.ts",
+    "deploy:backup": "node --import tsx scripts/production-backup.ts create",
+    "deploy:restore": "node --import tsx scripts/production-backup.ts restore",
+    "load:prepare": "node --import tsx scripts/prepare-load.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

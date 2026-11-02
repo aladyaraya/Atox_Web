@@ -7,6 +7,7 @@ import {
   decryptBackup,
 } from "../src/lib/backup-crypto";
 import { Pool } from "pg";
+import { restoreRuntimePermissions } from "../src/lib/restore-permissions";
 
 function config() {
   const url = new URL(process.env.DATABASE_URL || "");
@@ -138,6 +139,12 @@ async function main() {
       url,
       dump,
     );
+    const permissions = new Pool({ connectionString: url.href });
+    try {
+      await permissions.query(restoreRuntimePermissions);
+    } finally {
+      await permissions.end();
+    }
     console.log(
       "Isolated database restore finished. Verify business rows and matching immutable object files before promotion.",
     );

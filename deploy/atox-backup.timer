@@ -4,6 +4,6 @@ Description=Atox hourly database backup
 OnCalendar=hourly
 Persistent=true
 RandomizedDelaySec=0
-Unit=backup.service
+Unit=atox-backup.service
 [Install]
 WantedBy=timers.target

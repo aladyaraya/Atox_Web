@@ -57,6 +57,7 @@ export const sendEvents = pgTable(
   (table) => [
     index("send_events_email_created_at_idx").on(table.email, table.createdAt),
     index("send_events_ip_created_at_idx").on(table.ip, table.createdAt),
+    index("send_events_created_at_idx").on(table.createdAt),
   ],
 );
 

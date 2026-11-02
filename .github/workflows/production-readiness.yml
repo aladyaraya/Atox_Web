@@ -39,7 +39,11 @@ jobs:
       - name: Build deployable image without private context
         run: docker build --tag atox-web:${{ github.sha }} .
       - name: Validate production Compose using synthetic configuration
+        env:
+          RELEASE_ID: ${{ github.sha }}
         run: node scripts/check-deploy-config.mjs
+      - name: Actual production role layout, encrypted restore and Caddy validation
+        run: npx tsx scripts/check-deploy-stack.ts
       - name: Check runtime image health endpoint with fixtures closed
         run: |
           docker run -d --name atox-smoke -p 127.0.0.1:3199:3000 atox-web:${{ github.sha }}
