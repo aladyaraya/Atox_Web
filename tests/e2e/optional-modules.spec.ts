@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-test("Core website exposes email login and keeps independent module routes absent", async ({
+test("Default development site keeps M001 email and closes unconfigured Logto endpoints", async ({
   page,
   request,
 }) => {
@@ -7,9 +7,6 @@ test("Core website exposes email login and keeps independent module routes absen
   await expect(page.getByLabel("邮箱地址")).toBeVisible();
   await expect(page.getByRole("button", { name: /使用 Logto/ })).toHaveCount(0);
   for (const endpoint of [
-    "/preview/ticketing/demo",
-    "/api/preview/ticketing/demo",
-    "/api/preview/ticketing/demo/orders",
     "/account/security",
     "/auth/oidc/complete",
     "/api/account/identity",

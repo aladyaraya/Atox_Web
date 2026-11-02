@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { LanguageProvider } from "@/components/language-provider";
+import { SiteNavigationProvider } from "@/components/site-navigation-provider";
+import { isTicketingEnabled } from "@/modules/ticketing/policy";
 import "./globals.css";
 import "@/components/site-header.css";
 export const metadata: Metadata = {
@@ -14,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-scroll-behavior="smooth">
       <body>
-        <LanguageProvider>{children}</LanguageProvider>
+        <SiteNavigationProvider ticketingEnabled={isTicketingEnabled()}>
+          <LanguageProvider>{children}</LanguageProvider>
+        </SiteNavigationProvider>
       </body>
     </html>
   );

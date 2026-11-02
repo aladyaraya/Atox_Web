@@ -2,12 +2,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "./language-provider";
+import { useTicketingNavigation } from "./site-navigation-provider";
+import { TICKETING_PAGE } from "@/modules/ticketing/contracts";
 import { homepageConfig as config } from "@/modules/homepage/config";
 import { adminRequest } from "@/modules/admin/client";
 import type { AdminIdentity } from "@/modules/admin/contracts";
 
 export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
   const { language, setLanguage } = useLanguage();
+  const ticketingEnabled = useTicketingNavigation();
   const t = {
     ...config.copy[language],
     projects: language === "zh" ? "项目" : "Projects",
@@ -150,6 +153,11 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
               )}
             </Link>
           ))}
+          {ticketingEnabled && (
+            <Link className="sn-ticketing-link" href={TICKETING_PAGE}>
+              {language === "zh" ? "购票（模拟）" : "Tickets (Demo)"}
+            </Link>
+          )}
           {signedIn && adminVisible && open && (
             <Link href="/admin">
               {language === "zh" ? "管理后台" : "Admin"}

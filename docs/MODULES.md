@@ -1,3 +1,7 @@
+# 本分支：M003 模拟售票预备模块
+
+不合入 main，不真实收款，仅恢复售票及其依赖，不包含 OIDC。以下核心说明以 main 为基准。模块见 src/modules/ticketing/README.md。
+
 # 当前模块登记
 
 范围由本表及各模块 README 共同定义。分支／PR 管理见 BRANCHES-AND-PRS.md，实际验收见 CORE-CONSOLIDATION-VALIDATION.md。历史交付不等于当前主线启用或公网发布。

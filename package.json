@@ -23,7 +23,9 @@
     "mail:preview": "node scripts/mail-preview.mjs",
     "mail:check": "node --import tsx scripts/mail-check.mjs",
     "check:security": "node scripts/audit-dependencies.mjs",
-    "check:boundaries": "node scripts/check-boundaries.mjs"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "ticketing:maintain": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/ticketing-maintain.ts",
+    "test:ticketing-disabled": "playwright test --config=playwright.ticketing-disabled.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -52,5 +54,5 @@
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   },
-  "portalProfile": "core"
+  "portalProfile": "preview-ticketing"
 }
