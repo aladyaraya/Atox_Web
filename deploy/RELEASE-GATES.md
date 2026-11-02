@@ -4,7 +4,7 @@ Default: NOT RELEASED. Empty fields are blockers, not passed tests.
 
 | Gate | Required evidence | Status |
 |---|---|---|
-| Reviewed source | main commit, reviewed PR, dependency/image scan, all CI checks | Pending final PR |
+| Reviewed source | main commit, reviewed PR, dependency/image scan, all CI checks | [PR #7](https://github.com/aladyaraya/Atox_Web/pull/7): code CI passed; human review/merge and image security promotion pending |
 | Company ownership | Domain/cloud account owner, on-call and billing contacts | Not supplied |
 | Infrastructure | Real quote, selected region, restricted security group, private DB, object ACL/versioning | Not supplied |
 | Production mail | SPF/DKIM/DMARC/provider status, quota; real QQ/163/Gmail/Outlook arrivals | Not supplied |

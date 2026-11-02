@@ -2,7 +2,7 @@
 
 ## M016 1.0.0 · 首发生产适配与部署准备（未上线）
 
-技术交付集中在 deploy/、共享 DB／存储及 M001 正式邮件适配。M001 API 和本地 UUID 不变，新增 DATABASE_DRIVER／DATABASE_URL 和 STORAGE_DRIVER 双后端；不改原迁移或真实数据。Node 单进程＋同机 PostgreSQL、私有 OSS、独立加密备份、受保护 staging 和人工发布门槛。技术实现已交付，最终 CI 结果见验收记录；未采购／部署／承诺 300 人容量；见 [维护及资源说明](../deploy/README.md)。
+技术交付集中在 deploy/、共享 DB／存储及 M001 正式邮件适配。M001 API 和本地 UUID 不变，新增 DATABASE_DRIVER／DATABASE_URL 和 STORAGE_DRIVER 双后端；不改原迁移或真实数据。Node 单进程＋同机 PostgreSQL、私有 OSS、独立加密备份、受保护 staging 和人工发布门槛。技术实现与隔离验收已完成，CI 结果见 [M016 验收](M016-VALIDATION.md)；未采购／部署／承诺 300 人容量；见 [维护及资源说明](../deploy/README.md)。
 
 ## M001 1.2.0 · 本机任意收件邮箱（2026-10-31）
 
