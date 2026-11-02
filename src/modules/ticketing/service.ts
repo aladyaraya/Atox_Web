@@ -13,7 +13,7 @@ import type {
   SimulationAction,
   TicketState,
 } from "./contracts";
-import { ticketingConfig } from "./config";
+import { ticketingConfig } from "./runtime-config";
 import { isTicketingEnabled } from "./policy";
 import { TicketingError } from "./errors";
 import {
@@ -138,7 +138,7 @@ function validateInput(value: unknown) {
     answers: validateAnswers(input.answers),
   };
 }
-function ticketState(
+export function ticketState(
   ticket: (typeof ticketingConfig.tickets)[number],
   available: number,
   now = new Date(),

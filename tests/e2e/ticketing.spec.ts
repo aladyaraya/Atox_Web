@@ -1,6 +1,71 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { readFileSync } from "node:fs";
 const root = "/preview/ticketing/demo";
 const api = "/api/preview/ticketing/demo";
+
+test("Expired ticket rejects a direct quote and never creates an order", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const fixture = JSON.parse(
+    readFileSync(process.env.ADMIN_FIXTURE_FILE!, "utf8"),
+  ).normal;
+  await context.addCookies([
+    {
+      name: "hackathon_session",
+      value: fixture.token,
+      domain: new URL(baseURL!).hostname,
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  const catalog = await (await page.request.get(api)).json();
+  expect(
+    catalog.tickets.find((ticket: { id: string }) => ticket.id === "early")
+      .state,
+  ).toBe("ended");
+  const before = await (await page.request.get(api + "/orders")).json();
+  const selection = {
+    ticketId: "early",
+    quantity: 1,
+    answers: {
+      displayName: "Fixture Buyer",
+      country: "China",
+      source: "community",
+      purposes: ["learn"],
+      notes: "",
+      acceptedPolicy: true,
+    },
+  };
+  const response = await page.request.post(api + "/quote", {
+    headers: { Origin: baseURL! },
+    data: selection,
+  });
+  expect(response.status()).toBe(409);
+  expect((await response.json()).error).toBe("ENDED");
+  const input = {
+    ...selection,
+    idempotencyKey: `expired-fixture-${Date.now()}`,
+    quoteVersion: "stale-fixture-quote",
+  };
+  const changed = await page.request.post(api + "/orders", {
+    headers: { Origin: baseURL! },
+    data: input,
+  });
+  expect(changed.status()).toBe(409);
+  const changedBody = await changed.json();
+  expect(changedBody.error).toBe("QUOTE_CHANGED");
+  const denied = await page.request.post(api + "/orders", {
+    headers: { Origin: baseURL! },
+    data: { ...input, quoteVersion: changedBody.quote.quoteVersion },
+  });
+  expect(denied.status()).toBe(409);
+  expect((await denied.json()).error).toBe("ENDED");
+  const after = await (await page.request.get(api + "/orders")).json();
+  expect(after.total).toBe(before.total);
+});
 test.setTimeout(90_000);
 async function finishLogin(page: Page, context: BrowserContext, email: string) {
   await expect(page).toHaveURL(/\/login\?next=/);
@@ -126,7 +191,7 @@ test("Changing selection closes unpaid order; late payment requires reconciliati
   request,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(root + "/checkout?ticketId=early&quantity=1");
+  await page.goto(root + "/checkout?ticketId=standard&quantity=1");
   await finishLogin(page, context, `ticket-late-${Date.now()}@example.com`);
   await fill(page);
   const order = await create(page);
