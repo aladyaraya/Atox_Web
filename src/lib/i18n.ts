@@ -117,6 +117,8 @@ export const errors: Record<Language, Record<string, string>> = {
     TOO_MANY_ATTEMPTS: "尝试次数过多，请重新发送验证码。",
     RATE_LIMITED: "操作过于频繁，请稍后再试。",
     MAIL_DISABLED: "邮件服务暂未启用，请联系管理员。",
+    MAIL_DELIVERY_FAILED: "邮件发送失败或结果未确认，请稍后重新获取验证码。",
+    MAIL_RECIPIENT_NOT_ALLOWED: "本机测试仅支持配置的测试收件邮箱。",
     FORBIDDEN: "当前操作不可用。",
     INVALID_REQUEST: "提交内容有误，请检查后重试。",
     INTERNAL_ERROR: "服务暂时不可用，请稍后重试。",
@@ -128,6 +130,10 @@ export const errors: Record<Language, Record<string, string>> = {
     TOO_MANY_ATTEMPTS: "Too many attempts. Request a new code.",
     RATE_LIMITED: "Too many requests. Please wait and try again.",
     MAIL_DISABLED: "Email delivery is not enabled. Contact the administrator.",
+    MAIL_DELIVERY_FAILED:
+      "Email delivery failed or could not be confirmed. Request a new code later.",
+    MAIL_RECIPIENT_NOT_ALLOWED:
+      "This local test only allows the configured recipient.",
     FORBIDDEN: "This action is unavailable.",
     INVALID_REQUEST: "Check your details and try again.",
     INTERNAL_ERROR: "Service unavailable. Please try again later.",

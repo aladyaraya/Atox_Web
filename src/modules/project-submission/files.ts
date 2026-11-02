@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
-  mkdir,
-  readFile,
-  readdir,
-  stat,
-  unlink,
-  writeFile,
-} from "node:fs/promises";
-import path from "node:path";
+  putPrivateFile,
+  readPrivateFile,
+  removePrivateFile,
+  listPrivateFiles,
+} from "@/lib/private-storage";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { getDb, serializeDatabaseWrite } from "@/lib/db";
 import { normalizeUpload } from "@/lib/upload-content";
@@ -22,18 +19,6 @@ export const FILE_LIMITS = {
   imageMaxBytes: 5 * 1024 * 1024,
   documentMaxBytes: 20 * 1024 * 1024,
 };
-function directory() {
-  const root = path.resolve(process.env.UPLOAD_PATH || ".data/uploads"),
-    relative = path.relative(path.resolve("public"), root);
-  if (!relative || (!relative.startsWith("..") && !path.isAbsolute(relative)))
-    throw new E("INVALID_STORAGE", 500);
-  return path.join(root, "project-submissions");
-}
-function storage(name: string) {
-  if (!/^[a-f0-9-]{36}\.(png|jpeg|webp|pdf)$/.test(name))
-    throw new E("INVALID_FILE");
-  return path.join(directory(), name);
-}
 export async function uploadProjectFile(
   user: AuthUser,
   id: string,
@@ -59,15 +44,13 @@ export async function uploadProjectFile(
   } catch {
     throw new E("INVALID_FILE");
   }
-  return serializeDatabaseWrite(async () =>
-    db.transaction(async (tx) => {
-      const row = await owned(tx, user, id);
-      await checkEditable(tx, user, row);
-      const storageName = `${randomUUID()}.${content.extension}`,
-        target = storage(storageName);
-      await mkdir(directory(), { recursive: true });
-      await writeFile(target, content.buffer, { flag: "wx", mode: 0o600 });
-      try {
+  const storageName = `${randomUUID()}.${content.extension}`;
+  await putPrivateFile("projects", storageName, content.buffer);
+  try {
+    return await serializeDatabaseWrite(async () =>
+      db.transaction(async (tx) => {
+        const row = await owned(tx, user, id);
+        await checkEditable(tx, user, row);
         const clean =
           name
             .split(/[\\/]/)
@@ -102,12 +85,12 @@ export async function uploadProjectFile(
           .returning();
         if (!asset) throw new E("CLOSED", 409);
         return assetDto(asset);
-      } catch (error) {
-        await unlink(target).catch(() => {});
-        throw error;
-      }
-    }),
-  );
+      }),
+    );
+  } catch (error) {
+    await removePrivateFile("projects", storageName).catch(() => undefined);
+    throw error;
+  }
 }
 export async function readProjectFile(user: AuthUser | null, id: string) {
   if (!uuid(id)) throw new E("NOT_FOUND", 404);
@@ -154,7 +137,7 @@ export async function readProjectFile(user: AuthUser | null, id: string) {
   try {
     return {
       asset: assetDto(asset),
-      buffer: await readFile(storage(asset.storageName)),
+      buffer: await readPrivateFile("projects", asset.storageName),
     };
   } catch {
     throw new E("NOT_FOUND", 404);
@@ -193,9 +176,11 @@ export async function cleanupProjectFiles(
       if (!referenced.has(asset.id)) {
         await db.transaction(async (tx) => {
           await tx.delete(projectAssets).where(eq(projectAssets.id, asset.id));
-          await unlink(storage(asset.storageName)).catch((error) => {
-            if (error.code !== "ENOENT") throw error;
-          });
+          await removePrivateFile("projects", asset.storageName).catch(
+            (error) => {
+              if (error.code !== "ENOENT") throw error;
+            },
+          );
         });
         removed++;
       }
@@ -204,18 +189,19 @@ export async function cleanupProjectFiles(
         await db.select({ name: projectAssets.storageName }).from(projectAssets)
       ).map((r) => r.name),
     );
-    for (const name of await readdir(directory()).catch(() => [] as string[]))
+    if (process.env.STORAGE_DRIVER === "oss") return { removed };
+    for (const file of await listPrivateFiles("projects")) {
+      const name = file.name;
       if (
         /^[a-f0-9-]{36}\.(png|jpeg|webp|pdf)$/.test(name) &&
         !tracked.has(name)
       ) {
-        const file = storage(name),
-          info = await stat(file);
-        if (info.isFile() && info.mtime < olderThan) {
-          await unlink(file);
+        if (file.modifiedAt < olderThan) {
+          await removePrivateFile("projects", name);
           removed++;
         }
       }
+    }
     return { removed };
   });
 }

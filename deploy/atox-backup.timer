@@ -1,0 +1,9 @@
+[Unit]
+Description=Atox hourly database backup
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=0
+Unit=atox-backup.service
+[Install]
+WantedBy=timers.target

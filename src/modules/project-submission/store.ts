@@ -190,7 +190,11 @@ export async function readPublicProjects(
     );
   const result: PublicProject[] = [];
   for (const { live } of rows)
-    if (live && (!live.eventId || (await readPublishedEvent(live.eventId, db))))
+    if (
+      live &&
+      (process.env.DEPLOYMENT_MODE !== "production" || !live.demo) &&
+      (!live.eventId || (await readPublishedEvent(live.eventId, db)))
+    )
       result.push(live);
   return result;
 }
@@ -208,6 +212,7 @@ export async function readPublicProject(id: string, db?: Reader) {
     );
   if (
     !row?.live ||
+    (process.env.DEPLOYMENT_MODE === "production" && row.live.demo) ||
     (row.live.eventId && !(await readPublishedEvent(row.live.eventId, db)))
   )
     return null;

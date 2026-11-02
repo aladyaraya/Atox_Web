@@ -1,0 +1,14 @@
+{
+  email {$TLS_CONTACT_EMAIL}
+}
+{$SITE_DOMAIN} {
+  request_body {
+    max_size 22MB
+  }
+  reverse_proxy web:3000 {
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto https
+    header_up Host {$SITE_DOMAIN}
+  }
+  header Strict-Transport-Security "max-age=31536000"
+}

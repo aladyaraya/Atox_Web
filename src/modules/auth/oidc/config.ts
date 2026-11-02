@@ -52,6 +52,8 @@ export function getOidcConfig(env = process.env): OidcConfig | null {
     if (trust !== "local-sandbox" && trust !== "verified-email")
       throw new Error();
     if (trust === "local-sandbox") {
+      if (env.DATABASE_DRIVER && env.DATABASE_DRIVER !== "pglite")
+        throw new Error();
       const root = path.resolve(".data/oidc-sandbox");
       const db = path.resolve(
         /* turbopackIgnore: true */ env.DB_PATH || ".data/pglite",

@@ -1,0 +1,12 @@
+[Unit]
+Description=Atox encrypted PostgreSQL backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/atox/deploy
+ExecStart=/usr/bin/docker compose --profile maintenance run --rm maintenance node --import tsx scripts/production-backup.ts create
+TimeoutStartSec=900
+UMask=0077
+# Monitoring must alert when this unit fails or latest verified backup is >1h old.

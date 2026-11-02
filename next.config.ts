@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Isolate browser-test build output from an already running local dev server.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   devIndicators: false,
-  serverExternalPackages: ["@electric-sql/pglite"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg", "ali-oss"],
   // Callback query strings contain single-use authorization codes.
   logging: { incomingRequests: { ignore: [/\/api\/auth\/oidc\/callback/] } },
   async headers() {

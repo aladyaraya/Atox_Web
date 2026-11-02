@@ -1,4 +1,8 @@
-import { getCurrentUser, isDevMailEnabled } from "@/modules/auth/server";
+import {
+  getCurrentUser,
+  isDevMailEnabled,
+  isEmailLoginEnabled,
+} from "@/modules/auth/server";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/modules/auth/components/login-form";
 import { safeReturnPath } from "@/modules/auth/return-path";
@@ -18,6 +22,7 @@ export default async function LoginPage({
   return (
     <LoginForm
       devMailEnabled={isDevMailEnabled()}
+      emailLoginEnabled={isEmailLoginEnabled()}
       returnTo={returnTo}
       oidc={options}
       centralError={(await searchParams).oidcError === "CENTRAL_UNAVAILABLE"}

@@ -6,10 +6,17 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { and, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, count } from "drizzle-orm";
 import { getDb, serializeDatabaseWrite as serialized } from "../../lib/db";
 import { challenges, devMails, sendEvents, sessions, users } from "./schema";
-import { createDevMail, isDevMailEnabled } from "./mail";
+import {
+  createDevMail,
+  createCodeMail,
+  isDevMailEnabled,
+  isEmailLoginEnabled,
+} from "./mail";
+import { assertSmtpRecipient, deliverSmtp, smtpConfig } from "./smtp";
+import { productionMailConfig, deliverProductionMail } from "./production-mail";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
@@ -22,7 +29,12 @@ export { SESSION_COOKIE, SESSION_SECONDS } from "./policy";
 export function normalizeEmail(value: unknown): string {
   if (typeof value !== "string") throw new AuthError("INVALID_EMAIL");
   const email = value.trim().toLowerCase();
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+  if (
+    email.length > 254 ||
+    !/^[^\s@<>,;:"()[\]\\]+@[^\s@<>,;:"()[\]\\]+\.[^\s@<>,;:"()[\]\\]+$/.test(
+      email,
+    )
+  )
     throw new AuthError("INVALID_EMAIL");
   return email;
 }
@@ -40,7 +52,7 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 function requireMail() {
-  if (!isDevMailEnabled()) throw new AuthError("MAIL_DISABLED", 503);
+  if (!isEmailLoginEnabled()) throw new AuthError("MAIL_DISABLED", 503);
 }
 
 export async function sendCode(
@@ -52,13 +64,26 @@ export async function sendCode(
   const email = normalizeEmail(input);
   if (language !== "zh" && language !== "en")
     throw new AuthError("INVALID_REQUEST");
-  return serialized(async () => {
+  const smtp = smtpConfig();
+  const production = productionMailConfig();
+  if (smtp) assertSmtpRecipient(email, smtp);
+  const prepared = await serialized(async () => {
     const db = await getDb();
     return db.transaction(async (tx) => {
       const now = new Date();
       const windowMs = AUTH_POLICY.rateWindowSeconds * 1000;
       const cooldownMs = AUTH_POLICY.resendIntervalSeconds * 1000;
       const since = new Date(now.getTime() - windowMs);
+      if (production) {
+        const cap = Number(process.env.AUTH_MAX_SENDS_PER_HOUR || "10000");
+        if (!Number.isSafeInteger(cap) || cap < 1)
+          throw new AuthError("MAIL_DISABLED", 503);
+        const [sent] = await tx
+          .select({ total: count() })
+          .from(sendEvents)
+          .where(gt(sendEvents.createdAt, since));
+        if (sent.total >= cap) throw new AuthError("RATE_LIMITED", 429, 60);
+      }
       const emailEvents = await tx
         .select()
         .from(sendEvents)
@@ -119,16 +144,44 @@ export async function sendCode(
       await tx
         .insert(sendEvents)
         .values({ id: randomUUID(), email, ip, createdAt: now });
-      await tx
-        .insert(devMails)
-        .values(createDevMail(email, language, code, now));
+      if (isDevMailEnabled())
+        await tx
+          .insert(devMails)
+          .values(createDevMail(email, language, code, now));
       return {
-        ok: true as const,
-        retryAfter: AUTH_POLICY.resendIntervalSeconds,
-        expiresIn: AUTH_POLICY.codeLifetimeSeconds,
+        id,
+        mail: createCodeMail(email, language, code, now),
       };
     });
   });
+  if (smtp || production) {
+    try {
+      // Network calls never occupy the shared write queue or a transaction.
+      if (production)
+        await deliverProductionMail(
+          email,
+          prepared.mail.subject,
+          prepared.mail.body,
+        );
+      else await deliverSmtp(email, prepared.mail.subject, prepared.mail.body);
+    } catch (error) {
+      await serialized(async () => {
+        await (
+          await getDb()
+        )
+          .update(challenges)
+          .set({ consumedAt: new Date() })
+          .where(eq(challenges.id, prepared.id));
+      });
+      // Keep the send reservation for rate limiting even after delivery failure.
+      throw error;
+    }
+  }
+  return {
+    ok: true,
+    retryAfter: AUTH_POLICY.resendIntervalSeconds,
+    expiresIn: AUTH_POLICY.codeLifetimeSeconds,
+  };
 }
 
 export async function verifyCode(input: string, code: string) {
