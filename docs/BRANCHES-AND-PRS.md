@@ -20,7 +20,7 @@ main 是共同开发主线，不等于已部署。完成模块、合并 PR、公
 | [#3](https://github.com/aladyaraya/Atox_Web/pull/3) | 历史合并过的官网 OIDC，本次从当前主线拆出 |
 | [#4](https://github.com/aladyaraya/Atox_Web/pull/4) | 已合并的投稿发布和材料审核优化，保留核心业务 |
 | [#5](https://github.com/aladyaraya/Atox_Web/pull/5) | 本轮整合入口：真实邮件、预备模块移出、文档收敛，并承接 #6；检查及合并状态以链接为准 |
-| [#6](https://github.com/aladyaraya/Atox_Web/pull/6) | 安全候选 e2b0198，内容由 #5 承接，#5 合并后关闭重复请求并注明去向 |
+| [#6](https://github.com/aladyaraya/Atox_Web/pull/6) | 安全候选 e2b0198，由 #5 承接；GitHub 已因提交进入其 base 分支自动标记为合并，不另建重复安全 PR |
 | [#7](https://github.com/aladyaraya/Atox_Web/pull/7) | 生产适配参考，改为暂缓草稿，不是主线候选 |
 
 不为预备模块建立待合并 PR。以后真正继续开发时，先检查与当时 main 的兼容性，再开清晰范围的新 PR。临时整合分支不作为长期功能分支。
