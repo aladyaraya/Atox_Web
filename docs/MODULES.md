@@ -1,5 +1,9 @@
 # 模块登记与整合索引
 
+## M016 · 首发生产适配与部署准备
+
+技术交付集中在 deploy/、共享 DB／存储及 M001 正式邮件适配。M001 API 和本地 UUID 不变，新增 DATABASE_DRIVER／DATABASE_URL 和 STORAGE_DRIVER 双后端；不改原迁移或真实数据。Node 单进程＋同机 PostgreSQL、私有 OSS、独立加密备份、受保护 staging 和人工发布门槛。当前隔离验证中，未采购／部署／承诺 300 人容量；见 [维护及资源说明](../deploy/README.md)。
+
 ## M001 1.2.0 · 本机任意收件邮箱（2026-10-31）
 
 3105 本机测试显式开启 MAIL_TEST_ALLOW_ANY_RECIPIENT=true，允许登录表单输入任意单个有效邮箱；原 QQ 发信与限流不变，默认仍单收件人。无新 API／DTO／表／迁移，OIDC 保持关闭，生产禁止。142 项服务及最终专项 13 项通过；模拟域名未当作真实收信验收。配置和限制见认证 README、SMTP 验收记录。

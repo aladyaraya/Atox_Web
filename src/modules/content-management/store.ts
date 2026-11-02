@@ -62,14 +62,22 @@ export async function readEventRegistry(
     .from(managedContent)
     .where(eq(managedContent.kind, "event"));
   const events = new Map(
-    eventRegistry.map((event) => [event.id, structuredClone(event)]),
+    eventRegistry
+      .filter(
+        (event) => process.env.DEPLOYMENT_MODE !== "production" || !event.demo,
+      )
+      .map((event) => [event.id, structuredClone(event)]),
   );
   for (const row of rows) {
     if (row.state === "published" && row.live)
       events.set(row.id, { ...(row.live as EventDefinition), published: true });
     else events.delete(row.id);
   }
-  return [...events.values()].filter((event) => event.published);
+  return [...events.values()].filter(
+    (event) =>
+      event.published &&
+      (process.env.DEPLOYMENT_MODE !== "production" || !event.demo),
+  );
 }
 export async function readPublishedEvent(id: string, db?: ContentReader) {
   return (await readEventRegistry(db)).find((event) => event.id === id) ?? null;

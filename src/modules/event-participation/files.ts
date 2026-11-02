@@ -1,14 +1,11 @@
 import { normalizeUpload } from "@/lib/upload-content";
 import { randomUUID } from "node:crypto";
 import {
-  mkdir,
-  readFile,
-  readdir,
-  stat,
-  unlink,
-  writeFile,
-} from "node:fs/promises";
-import path from "node:path";
+  putPrivateFile,
+  readPrivateFile,
+  removePrivateFile,
+  listPrivateFiles,
+} from "@/lib/private-storage";
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { getDb, serializeDatabaseWrite } from "@/lib/db";
 import { eventAssets, eventMaterials } from "@/lib/schema";
@@ -37,21 +34,6 @@ export function buildFiles(
   ) => boundService.assertCanEdit(user, db);
   const assetDto = (asset: typeof eventAssets.$inferSelect) =>
     boundService.assetDto(asset);
-  function uploadDirectory() {
-    const directory = path.resolve(
-      /* turbopackIgnore: true */ process.env.UPLOAD_PATH || ".data/uploads",
-    );
-    const publicDirectory = path.resolve("public");
-    const relative = path.relative(publicDirectory, directory);
-    if (!relative || (!relative.startsWith("..") && !path.isAbsolute(relative)))
-      throw new Error("UPLOAD_PATH must be outside public");
-    return directory;
-  }
-  function storagePath(storageName: string) {
-    if (!/^[a-f0-9-]{36}\.(png|jpeg|webp|pdf)$/.test(storageName))
-      throw new EventError("INVALID_FILE");
-    return path.join(uploadDirectory(), storageName);
-  }
   function nameFor(originalName: string, extension: string) {
     if (typeof originalName !== "string" || originalName.length > 1000)
       throw new EventError("INVALID_FILE");
@@ -81,14 +63,12 @@ export function buildFiles(
     await assertCanEdit(user);
     const content = await validateContent(purpose, buffer);
     const original = nameFor(originalName, content.extension);
-    return serializeDatabaseWrite(async () => {
-      const db = await getDb();
-      await assertCanEdit(user, db);
-      const storageName = `${randomUUID()}.${content.extension}`;
-      const target = storagePath(storageName);
-      await mkdir(uploadDirectory(), { recursive: true });
-      await writeFile(target, content.buffer, { flag: "wx", mode: 0o600 });
-      try {
+    const storageName = `${randomUUID()}.${content.extension}`;
+    await putPrivateFile("events", storageName, content.buffer);
+    try {
+      return await serializeDatabaseWrite(async () => {
+        const db = await getDb();
+        await assertCanEdit(user, db);
         return await db.transaction(async (tx) => {
           await assertCanEdit(user, tx);
           const max =
@@ -112,11 +92,11 @@ export function buildFiles(
             .returning();
           return assetDto(asset);
         });
-      } catch (error) {
-        await unlink(target).catch(() => undefined);
-        throw error;
-      }
-    });
+      });
+    } catch (error) {
+      await removePrivateFile("events", storageName).catch(() => undefined);
+      throw error;
+    }
   }
   async function readAsset(user: AuthUser, id: string) {
     if (!eventConfig.published && !(await isReviewer(user)))
@@ -149,7 +129,7 @@ export function buildFiles(
     }
     try {
       return {
-        buffer: await readFile(storagePath(asset.storageName)),
+        buffer: await readPrivateFile("events", asset.storageName),
         mediaType: asset.mediaType,
         originalName: asset.originalName,
         purpose: asset.purpose,
@@ -178,7 +158,7 @@ export function buildFiles(
   }
   async function removeAsset(asset: typeof eventAssets.$inferSelect) {
     try {
-      await unlink(storagePath(asset.storageName));
+      await removePrivateFile("events", asset.storageName);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -230,6 +210,7 @@ export function buildFiles(
         removed++;
       }
       // Also remove old disk files left behind if the process stopped before inserting a row.
+      if (process.env.STORAGE_DRIVER === "oss") return removed;
       const remaining = new Set(
         (
           await db
@@ -237,23 +218,15 @@ export function buildFiles(
             .from(eventAssets)
         ).map((asset) => asset.storageName),
       );
-      let names: string[];
-      try {
-        names = await readdir(uploadDirectory());
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return removed;
-        throw error;
-      }
-      for (const name of names) {
+      for (const file of await listPrivateFiles("events")) {
+        const name = file.name;
         if (
           remaining.has(name) ||
           !/^[a-f0-9-]{36}\.(png|jpeg|webp|pdf)$/.test(name)
         )
           continue;
-        const filename = storagePath(name);
-        const details = await stat(filename);
-        if (details.isFile() && details.mtime < olderThan) {
-          await unlink(filename);
+        if (file.modifiedAt < olderThan) {
+          await removePrivateFile("events", name);
           removed++;
         }
       }

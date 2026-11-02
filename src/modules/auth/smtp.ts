@@ -23,6 +23,7 @@ export function smtpConfig(
     const allowAnyRecipient = env.MAIL_TEST_ALLOW_ANY_RECIPIENT === "true";
     if (
       origin.protocol !== "http:" ||
+      (env.DATABASE_DRIVER !== undefined && env.DATABASE_DRIVER !== "pglite") ||
       !["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname) ||
       !relative ||
       relative.startsWith("..") ||

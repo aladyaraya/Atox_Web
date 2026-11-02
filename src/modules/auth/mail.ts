@@ -3,9 +3,14 @@ import { desc } from "drizzle-orm";
 import { getDb } from "../../lib/db";
 import { devMails } from "./schema";
 import { smtpConfig } from "./smtp";
+import { productionMailConfig } from "./production-mail";
 
 export function isEmailLoginEnabled() {
-  return isDevMailEnabled() || smtpConfig() !== null;
+  return (
+    isDevMailEnabled() ||
+    smtpConfig() !== null ||
+    productionMailConfig() !== null
+  );
 }
 
 export function isDevMailEnabled() {

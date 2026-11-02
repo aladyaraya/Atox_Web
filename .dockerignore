@@ -1,0 +1,15 @@
+node_modules
+.next*
+.git
+.env*
+.data
+uploads
+test-results*
+playwright-report*
+deliverables
+labs
+产品相关
+交接文件
+*.log
+*.tsbuildinfo
+next-env.d.ts

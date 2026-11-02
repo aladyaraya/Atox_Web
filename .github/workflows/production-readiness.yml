@@ -1,0 +1,55 @@
+name: M016 production readiness
+on:
+  push:
+    branches: ["codex/m016-production-readiness"]
+  pull_request:
+    paths: ["src/lib/**", "src/modules/auth/**", "deploy/**", "Dockerfile", "tests/postgres/**", ".github/workflows/production-readiness.yml"]
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency:
+  group: readiness-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  postgres-and-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.11-alpine3.24
+        env:
+          POSTGRES_DB: atox_ci_readiness
+          POSTGRES_USER: atox_ci
+          POSTGRES_PASSWORD: ephemeral-ci-only
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U atox_ci -d atox_ci_readiness" --health-interval 5s --health-timeout 5s --health-retries 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version-file: .nvmrc, cache: npm}
+      - run: npm ci
+      - name: Real PostgreSQL migration, authentication, restart and transaction tests
+        env:
+          POSTGRES_TEST_URL: postgresql://127.0.0.1:5432/atox_ci_readiness
+          PGUSER: atox_ci
+          PGPASSWORD: ephemeral-ci-only
+        run: npx tsx --test tests/postgres/*.test.ts
+      - name: Check production dependency advisories
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build deployable image without private context
+        run: docker build --tag atox-web:${{ github.sha }} .
+      - name: Validate production Compose using synthetic configuration
+        run: node scripts/check-deploy-config.mjs
+      - name: Check runtime image health endpoint with fixtures closed
+        run: |
+          docker run -d --name atox-smoke -p 127.0.0.1:3199:3000 atox-web:${{ github.sha }}
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3199/api/health/live; then break; fi
+            sleep 1
+          done
+          test "$(curl --silent -o /dev/null -w '%{http_code}' http://127.0.0.1:3199/api/health/ready)" = 503
+          test "$(curl --silent -o /dev/null -w '%{http_code}' http://127.0.0.1:3199/dev/mail)" = 404
+          test "$(curl --silent -o /dev/null -w '%{http_code}' http://127.0.0.1:3199/api/auth/oidc/pending)" = 404
+      - name: Remove isolated image process
+        if: always()
+        run: docker rm -f atox-smoke || true

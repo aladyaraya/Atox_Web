@@ -1,8 +1,8 @@
-import { closeDb, getDb } from "../src/lib/db";
+import { closeDb, migrateDatabase } from "../src/lib/db";
 
 async function main() {
   try {
-    await getDb();
+    await migrateDatabase();
     console.log("Database migrations applied.");
   } finally {
     await closeDb();
@@ -10,6 +10,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  void error;
+  console.error(
+    "Migration failed; database credentials and query details withheld.",
+  );
   process.exitCode = 1;
 });

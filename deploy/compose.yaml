@@ -1,0 +1,108 @@
+name: atox-production
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+x-runtime: &runtime
+  NODE_ENV: production
+  DEPLOYMENT_MODE: production
+  APP_ORIGIN: https://${SITE_DOMAIN:?set SITE_DOMAIN}
+  RELEASE_ID: ${RELEASE_ID:?set reviewed Git SHA}
+  LAUNCH_APPROVED: ${LAUNCH_APPROVED:-false}
+  DATABASE_DRIVER: postgres
+  DATABASE_URL: postgresql://atox_app:${APP_DB_PASSWORD:?set APP_DB_PASSWORD}@postgres:5432/atox
+  DATABASE_AUTO_MIGRATE: "false"
+  AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+  TRUST_PROXY: "true"
+  ENABLE_DEV_MAIL: "false"
+  ENABLE_TICKETING_PREVIEW: "false"
+  ENABLE_LOGTO_LOGIN: "false"
+  MAIL_TRANSPORT: transactional-smtp
+  MAIL_DOMAIN_VERIFIED: ${MAIL_DOMAIN_VERIFIED:-false}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-HACKATHON}
+  AUTH_MAX_SENDS_PER_HOUR: ${AUTH_MAX_SENDS_PER_HOUR:-10000}
+  SMTP_HOST: ${SMTP_HOST:?set verified SMTP host}
+  SMTP_PORT: "465"
+  SMTP_SECURE: "true"
+  SMTP_USER: ${SMTP_USER:?set SMTP_USER}
+  SMTP_FROM: ${SMTP_FROM:?set SMTP_FROM}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:?set SMTP_PASSWORD}
+  STORAGE_DRIVER: oss
+  OSS_REGION: oss-cn-hongkong
+  OSS_BUCKET: ${OSS_BUCKET:?set private bucket}
+  OSS_PREFIX: ${OSS_PREFIX:-production/}
+  OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:?set scoped OSS key}
+  OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:?set scoped OSS secret}
+services:
+  postgres:
+    image: postgres:17.11-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: atox
+      POSTGRES_USER: atox_bootstrap
+      POSTGRES_PASSWORD: ${DB_BOOTSTRAP_PASSWORD:?set random bootstrap password}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?set MIGRATOR_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-atox.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U atox_bootstrap -d atox"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging: *logging
+    # No host port. Only the private Compose network can reach PostgreSQL.
+  web:
+    image: atox-web:${RELEASE_ID}
+    build: {context: ..}
+    restart: unless-stopped
+    environment: *runtime
+    depends_on: {postgres: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+  edge:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      TLS_CONTACT_EMAIL: ${TLS_CONTACT_EMAIL:?set certificate contact}
+      STAGING_USER: ${STAGING_USER:-reviewer}
+      STAGING_PASSWORD_HASH: ${STAGING_PASSWORD_HASH:?set staging password hash}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ${CADDY_CONFIG:-./Caddyfile.staging}:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web]
+    logging: *logging
+  migrate:
+    image: atox-web:${RELEASE_ID}
+    profiles: [maintenance]
+    environment:
+      <<: *runtime
+      DATABASE_URL: postgresql://atox_migrator:${MIGRATOR_DB_PASSWORD:?set migration password}@postgres:5432/atox
+    command: [node, --import, tsx, scripts/migrate.ts]
+    depends_on: {postgres: {condition: service_healthy}}
+    logging: *logging
+  maintenance:
+    image: atox-web:${RELEASE_ID}
+    profiles: [maintenance]
+    environment:
+      <<: *runtime
+      DATABASE_URL: postgresql://atox_migrator:${MIGRATOR_DB_PASSWORD:?set migration password}@postgres:5432/atox
+      BACKUP_BUCKET: ${BACKUP_BUCKET:?set separate private backup bucket}
+      BACKUP_PREFIX: backups/
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?set 64 hex encryption key}
+      BACKUP_ACCESS_KEY_ID: ${BACKUP_ACCESS_KEY_ID:?set backup key}
+      BACKUP_ACCESS_KEY_SECRET: ${BACKUP_ACCESS_KEY_SECRET:?set backup secret}
+    command: [node, --import, tsx, scripts/production-preflight.ts]
+    depends_on: {postgres: {condition: service_healthy}}
+    logging: *logging
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

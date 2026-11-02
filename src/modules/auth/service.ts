@@ -6,7 +6,7 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { and, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, count } from "drizzle-orm";
 import { getDb, serializeDatabaseWrite as serialized } from "../../lib/db";
 import { challenges, devMails, sendEvents, sessions, users } from "./schema";
 import {
@@ -16,6 +16,7 @@ import {
   isEmailLoginEnabled,
 } from "./mail";
 import { assertSmtpRecipient, deliverSmtp, smtpConfig } from "./smtp";
+import { productionMailConfig, deliverProductionMail } from "./production-mail";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
@@ -28,7 +29,12 @@ export { SESSION_COOKIE, SESSION_SECONDS } from "./policy";
 export function normalizeEmail(value: unknown): string {
   if (typeof value !== "string") throw new AuthError("INVALID_EMAIL");
   const email = value.trim().toLowerCase();
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+  if (
+    email.length > 254 ||
+    !/^[^\s@<>,;:"()[\]\\]+@[^\s@<>,;:"()[\]\\]+\.[^\s@<>,;:"()[\]\\]+$/.test(
+      email,
+    )
+  )
     throw new AuthError("INVALID_EMAIL");
   return email;
 }
@@ -59,6 +65,7 @@ export async function sendCode(
   if (language !== "zh" && language !== "en")
     throw new AuthError("INVALID_REQUEST");
   const smtp = smtpConfig();
+  const production = productionMailConfig();
   if (smtp) assertSmtpRecipient(email, smtp);
   const prepared = await serialized(async () => {
     const db = await getDb();
@@ -67,6 +74,16 @@ export async function sendCode(
       const windowMs = AUTH_POLICY.rateWindowSeconds * 1000;
       const cooldownMs = AUTH_POLICY.resendIntervalSeconds * 1000;
       const since = new Date(now.getTime() - windowMs);
+      if (production) {
+        const cap = Number(process.env.AUTH_MAX_SENDS_PER_HOUR || "10000");
+        if (!Number.isSafeInteger(cap) || cap < 1)
+          throw new AuthError("MAIL_DISABLED", 503);
+        const [sent] = await tx
+          .select({ total: count() })
+          .from(sendEvents)
+          .where(gt(sendEvents.createdAt, since));
+        if (sent.total >= cap) throw new AuthError("RATE_LIMITED", 429, 60);
+      }
       const emailEvents = await tx
         .select()
         .from(sendEvents)
@@ -137,10 +154,16 @@ export async function sendCode(
       };
     });
   });
-  if (smtp) {
+  if (smtp || production) {
     try {
       // Network calls never occupy the shared write queue or a transaction.
-      await deliverSmtp(email, prepared.mail.subject, prepared.mail.body);
+      if (production)
+        await deliverProductionMail(
+          email,
+          prepared.mail.subject,
+          prepared.mail.body,
+        );
+      else await deliverSmtp(email, prepared.mail.subject, prepared.mail.body);
     } catch (error) {
       await serialized(async () => {
         await (

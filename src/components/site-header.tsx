@@ -140,7 +140,6 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           onClick={(event) => {
             if ((event.target as Element).closest("a")) {
               setOpen(false);
-              toggle.current?.focus();
             }
           }}
         >
