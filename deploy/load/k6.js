@@ -17,6 +17,11 @@ const fixtures = new SharedArray(
       .users,
 );
 const eventId = __ENV.LOAD_EVENT_ID;
+const event = JSON.parse(open(__ENV.LOAD_EVENT_FILE || "/fixtures/event.json"));
+if (event.eventId !== eventId || !event.trackId)
+  throw new Error("Fixture activity must match the explicit load activity");
+const cover = open("/fixtures/upload.png", "b");
+const document = open("/fixtures/document.pdf", "b");
 const upload = open(__ENV.LOAD_UPLOAD_FILE || "/fixtures/upload.png", "b");
 const documentUpload = __ENV.LOAD_UPLOAD_PURPOSE === "document";
 if (!eventId) throw new Error("LOAD_EVENT_ID required");
@@ -50,9 +55,43 @@ function params(user, kind = "ordinary", json = false) {
     },
   };
 }
+let registered = false;
+let assets = null;
+function uploadAsset(user, purpose, data, filename, mime) {
+  const response = http.post(
+    base + "/api/events/" + encodeURIComponent(eventId) + "/files",
+    { purpose, file: http.file(data, filename, mime) },
+    { ...params(user, "upload"), responseType: "text" },
+  );
+  return check(response, { "private upload": (r) => r.status === 200 })
+    ? response.json("id")
+    : null;
+}
 export default function scenario() {
   const user = fixtures[(__VU - 1) % fixtures.length],
     mode = Math.random();
+  const endpoint = base + "/api/events/" + encodeURIComponent(eventId);
+  if (!registered) {
+    registered = check(
+      http.post(
+        endpoint + "/registration",
+        JSON.stringify({
+          displayName: "Synthetic load " + __VU,
+          role: "developer",
+          country: "TEST",
+          organization: "",
+          contact: "",
+          acceptedTerms: true,
+        }),
+        params(user, "ordinary", true),
+      ),
+      { registration: (r) => r.status === 200 },
+    );
+    if (!registered) {
+      sleep(1);
+      return;
+    }
+  }
   if (mode < 0.8) {
     const route = [
       "/",
@@ -65,32 +104,76 @@ export default function scenario() {
       "browse OK": (r) => r.status === 200,
     });
   } else if (mode < 0.95) {
+    if (!assets) {
+      const coverId = uploadAsset(
+        user,
+        "cover",
+        cover,
+        "synthetic.png",
+        "image/png",
+      );
+      const documentId = uploadAsset(
+        user,
+        "document",
+        document,
+        "synthetic.pdf",
+        "application/pdf",
+      );
+      if (!coverId || !documentId) {
+        sleep(1);
+        return;
+      }
+      assets = { coverId, documentId };
+    }
     const current = http.get(
-      base + "/api/account/profile",
+      endpoint + "/materials",
       params(user, "ordinary", true),
     );
-    if (!check(current, { "profile read": (r) => r.status === 200 })) return;
+    if (!check(current, { "materials read": (r) => r.status === 200 })) {
+      sleep(1);
+      return;
+    }
     const revision = current.json("revision");
     const response = http.put(
-      base + "/api/account/profile",
-      JSON.stringify({ revision, nickname: "Load user " + __VU }),
+      endpoint + "/materials/draft",
+      JSON.stringify({
+        revision,
+        payload: {
+          name: "Synthetic project " + __VU,
+          tagline: "Synthetic load submission",
+          description:
+            "Isolated staging data. No real participant information.",
+          trackId: event.trackId,
+          ...assets,
+          screenshotIds: [],
+          videoUrl: "",
+          experienceUrl: "",
+          codeUrl: "",
+          original: true,
+          usageAuthorized: true,
+          publicDisplay: false,
+        },
+      }),
       params(user, "ordinary", true),
     );
-    check(response, { "profile write": (r) => r.status === 200 });
-  } else {
-    const response = http.post(
-      base + "/api/events/" + encodeURIComponent(eventId) + "/files",
-      {
-        purpose: documentUpload ? "document" : "cover",
-        file: http.file(
-          upload,
-          documentUpload ? "synthetic.pdf" : "synthetic.png",
-          documentUpload ? "application/pdf" : "image/png",
+    if (check(response, { "draft saved": (r) => r.status === 200 })) {
+      check(
+        http.post(
+          endpoint + "/materials/submit",
+          JSON.stringify({ revision: response.json("revision") }),
+          params(user, "ordinary", true),
         ),
-      },
-      params(user, "upload"),
+        { "formal submission": (r) => r.status === 200 },
+      );
+    }
+  } else {
+    uploadAsset(
+      user,
+      documentUpload ? "document" : "cover",
+      upload,
+      documentUpload ? "synthetic.pdf" : "synthetic.png",
+      documentUpload ? "application/pdf" : "image/png",
     );
-    check(response, { "private upload": (r) => r.status === 200 });
   }
   sleep(1);
 }

@@ -3,10 +3,10 @@ import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { PDFDocument } from "pdf-lib";
 import { eq } from "drizzle-orm";
 import { getDb, closeDb } from "../src/lib/db";
 import { users, sessions } from "../src/modules/auth/schema";
-import { eventRegistrations } from "../src/modules/event-participation/schema";
 import { managedContent } from "../src/modules/content-management/schema";
 async function main() {
   const url = new URL(process.env.DATABASE_URL || "");
@@ -31,6 +31,8 @@ async function main() {
     !("submissionClosesAt" in event) ||
     event.demo ||
     !event.published ||
+    Date.now() < Date.parse(event.registrationOpensAt) ||
+    Date.now() >= Date.parse(event.registrationClosesAt) ||
     Date.now() < Date.parse(event.submissionOpensAt) ||
     Date.now() >= Date.parse(event.submissionClosesAt)
   )
@@ -48,8 +50,7 @@ async function main() {
   const fixtures: Array<{ id: string; cookie: string }> = [];
   for (let batch = 0; batch < 10; batch++) {
     const userRows: Array<typeof users.$inferInsert> = [],
-      sessionRows: Array<typeof sessions.$inferInsert> = [],
-      registrations: Array<typeof eventRegistrations.$inferInsert> = [];
+      sessionRows: Array<typeof sessions.$inferInsert> = [];
     for (let i = 0; i < 1000; i++) {
       const id = randomUUID(),
         token = randomBytes(32).toString("hex"),
@@ -66,25 +67,25 @@ async function main() {
         createdAt: now,
         expiresAt: new Date(Date.now() + 86400000),
       });
-      registrations.push({
-        id: randomUUID(),
-        eventId: eventId!,
-        userId: id,
-        displayName: "Synthetic load fixture",
-        role: "developer" as const,
-        country: "TEST",
-        acceptedTerms: true,
-      });
       fixtures.push({ id, cookie: token });
     }
     await db.transaction(async (tx) => {
       await tx.insert(users).values(userRows);
       await tx.insert(sessions).values(sessionRows);
-      await tx.insert(eventRegistrations).values(registrations);
     });
   }
   const directory = path.resolve(".data/load");
   await mkdir(directory, { recursive: true });
+  await writeFile(
+    path.join(directory, "event.json"),
+    JSON.stringify({ eventId, trackId: event.tracks[0].id }),
+    { mode: 0o600 },
+  );
+  const pdf = await PDFDocument.create();
+  pdf.addPage().drawText("Synthetic load document. No user information.");
+  await writeFile(path.join(directory, "document.pdf"), await pdf.save(), {
+    mode: 0o600,
+  });
   await writeFile(
     path.join(directory, "fixtures.json"),
     JSON.stringify({ eventId, users: fixtures }),

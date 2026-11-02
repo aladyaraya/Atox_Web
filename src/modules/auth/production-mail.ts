@@ -33,7 +33,9 @@ export function productionMailConfig(
       !/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(env.SMTP_FROM || "") ||
       env.SMTP_USER !== env.SMTP_FROM ||
       !env.AUTH_SECRET ||
-      env.AUTH_SECRET.length < 32
+      env.AUTH_SECRET.length < 32 ||
+      !Number.isSafeInteger(Number(env.AUTH_MAX_SENDS_PER_HOUR || "10000")) ||
+      Number(env.AUTH_MAX_SENDS_PER_HOUR || "10000") < 1
     )
       return null;
     return {

@@ -4,6 +4,13 @@ import assert from "node:assert/strict";
 import { randomUUID, randomBytes } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import nodemailer from "nodemailer";
+import OSS from "ali-oss";
+import sharp from "sharp";
+import { PDFDocument } from "pdf-lib";
+import { demoEventConfig } from "../../src/modules/event-board/config";
+import { buildEventService } from "../../src/modules/event-participation/service";
+import { buildFiles } from "../../src/modules/event-participation/files";
+import { emptyMaterial } from "../../src/modules/event-participation/contracts";
 import {
   getDb,
   closeDb,
@@ -24,8 +31,8 @@ let code = "",
   transportFailure = false;
 before(async () => {
   const url = new URL(process.env.POSTGRES_TEST_URL || "");
-  url.username=process.env.PGUSER||url.username;
-  url.password=process.env.PGPASSWORD||url.password;
+  url.username = process.env.PGUSER || url.username;
+  url.password = process.env.PGPASSWORD || url.password;
   if (!/^atox_ci_[a-z0-9_]+$/.test(url.pathname.slice(1)))
     throw new Error("Only isolated atox_ci_* databases are allowed");
   Object.assign(process.env, {
@@ -139,4 +146,128 @@ test("PostgreSQL transaction rollback and shared queue preserve all-or-nothing w
     ).length,
     0,
   );
+});
+
+test("PostgreSQL registration and formal submission remain atomic with private object storage", async () => {
+  const config = {
+    ...demoEventConfig,
+    id: "pg-isolation",
+    demo: false,
+    registrationOpensAt: new Date(Date.now() - 3600000).toISOString(),
+    registrationClosesAt: new Date(Date.now() + 3600000).toISOString(),
+    submissionOpensAt: new Date(Date.now() - 3600000).toISOString(),
+    submissionClosesAt: new Date(Date.now() + 3600000).toISOString(),
+  };
+  const user = {
+    id: randomUUID(),
+    email: randomUUID() + "@example.test",
+    createdAt: new Date(),
+  };
+  const outsider = {
+    id: randomUUID(),
+    email: randomUUID() + "@example.test",
+    createdAt: new Date(),
+  };
+  await (await getDb()).insert(users).values([user, outsider]);
+  const service = buildEventService(config, async () => config);
+  const files = buildFiles(config, async () => config);
+  const registered = await Promise.all(
+    [1, 2].map(() =>
+      service.register(user, {
+        displayName: "Synthetic participant",
+        role: "developer",
+        country: "TEST",
+        organization: "",
+        contact: "",
+        acceptedTerms: true,
+      }),
+    ),
+  );
+  assert.equal(registered[0].id, registered[1].id);
+  Object.assign(process.env, {
+    STORAGE_DRIVER: "oss",
+    OSS_REGION: "oss-cn-hongkong",
+    OSS_BUCKET: "atox-ci-private",
+    OSS_PREFIX: "fixture/",
+    OSS_ACCESS_KEY_ID: "synthetic-key",
+    OSS_ACCESS_KEY_SECRET: "synthetic-secret",
+  });
+  const objects = new Map<string, Buffer>();
+  const put = mock.method(
+    OSS.prototype,
+    "put",
+    async (key: string, value: Buffer) => {
+      objects.set(key, value);
+      return {};
+    },
+  );
+  const get = mock.method(OSS.prototype, "get", async (key: string) => ({
+    content: objects.get(key),
+  }));
+  try {
+    const image = await sharp({
+      create: { width: 12, height: 12, channels: 3, background: "#b899ff" },
+    })
+      .png()
+      .toBuffer();
+    const pdf = await PDFDocument.create();
+    pdf.addPage();
+    const cover = await files.uploadAsset(
+      user,
+      "cover",
+      image,
+      "synthetic.png",
+    );
+    const document = await files.uploadAsset(
+      user,
+      "document",
+      Buffer.from(await pdf.save()),
+      "synthetic.pdf",
+    );
+    const saved = await service.saveDraft(user, {
+      revision: 0,
+      payload: {
+        ...emptyMaterial(config),
+        name: "Synthetic project",
+        tagline: "Isolated PG test",
+        description: "No real user data",
+        coverId: cover.id,
+        documentId: document.id,
+        original: true,
+        usageAuthorized: true,
+      },
+    });
+    const outcomes = await Promise.allSettled(
+      [1, 2].map(() =>
+        service.submitMaterials(user, { revision: saved.revision }),
+      ),
+    );
+    assert.equal(outcomes.filter((r) => r.status === "fulfilled").length, 1);
+    await closeDb();
+    const material = await service.getMaterials(user);
+    assert.equal(material.status, "pending");
+    assert.equal(material.draft, null);
+    assert.equal(material.official?.documentId, document.id);
+    assert.ok((await files.readAsset(user, document.id)).buffer.length > 0);
+    await assert.rejects(files.readAsset(outsider, document.id));
+    await assert.rejects(
+      buildFiles({ ...config, id: "different-event" }).readAsset(
+        user,
+        document.id,
+      ),
+    );
+    await assert.rejects(
+      service.saveDraft(user, {
+        revision: saved.revision,
+        payload: material.official!,
+      }),
+    );
+    assert.equal(
+      (await service.getMaterials(user)).official?.documentId,
+      document.id,
+    );
+  } finally {
+    put.mock.restore();
+    get.mock.restore();
+  }
 });

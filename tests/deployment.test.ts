@@ -84,6 +84,8 @@ test("production login requires an explicitly verified TLS sender and safe produ
     { APP_ORIGIN: "http://website.example.test" },
     { APP_ORIGIN: "https://localhost" },
     { SMTP_FROM: "different@example.test" },
+    { AUTH_MAX_SENDS_PER_HOUR: "0" },
+    { AUTH_MAX_SENDS_PER_HOUR: "invalid" },
   ])
     assert.equal(productionMailConfig({ ...environment, ...change }), null);
   assert.ok(
