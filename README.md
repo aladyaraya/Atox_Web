@@ -1,5 +1,7 @@
 # HACKATHON · Atox Web
 
+**第一次负责网站发布，请先看 [网站发布入门路线](docs/网站发布入门路线.md)。** 当前先理解步骤、分工和所需资源，不执行部署或采购。已有技术配置保留作后续参考。
+
 M016 首发部署准备：新增正式事务邮件、PostgreSQL 与私有 OSS 适配、加密备份恢复、单机 Compose/Caddy、健康检查及受控发布说明。**尚未购买或部署云资源**，公司域名／邮件／存储、目标硬件压测与实际恢复是上线门槛。入口见 [部署操作](deploy/README.md)、[采购询价表](deploy/PROCUREMENT.md)、[发布证据](deploy/RELEASE-GATES.md)。本地开发仍默认 PGlite／本地私有文件，M001 接口及现有数据保持。
 
 本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP）。默认单收件人；显式设置 `MAIL_TEST_ALLOW_ANY_RECIPIENT=true` 可填写任意单个有效邮箱，当前本机已开启。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及验证见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。

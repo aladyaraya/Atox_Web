@@ -1,20 +1,22 @@
-# Release evidence checklist
+# 正式开放前的检查表
 
-Default: NOT RELEASED. Empty fields are blockers, not passed tests.
+当前状态：尚未正式开放。这张表留到以后决定上线时使用，“待做”不能当成已通过。新手先阅读 [网站发布入门路线](../docs/网站发布入门路线.md)。
 
-| Gate | Required evidence | Status |
-|---|---|---|
-| Reviewed source | main commit, reviewed PR, dependency/image scan, all CI checks | [PR #7](https://github.com/aladyaraya/Atox_Web/pull/7): M016 checks passed; current full regression depends on separate ticketing test fix; human review/merge and image security promotion pending |
-| Company ownership | Domain/cloud account owner, on-call and billing contacts | Not supplied |
-| Infrastructure | Real quote, selected region, restricted security group, private DB, object ACL/versioning | Not supplied |
-| Production mail | SPF/DKIM/DMARC/provider status, quota; real QQ/163/Gmail/Outlook arrivals | Not supplied |
-| Login/security | New+existing email, resend/expiry/failure/logout, foreign Origin, dev/OIDC/payment closed | Automated fixtures + real deployment required |
-| Business | Registration/team/material/review/project publication/comment, proper authorization | Existing regressions + protected cloud rehearsal |
-| Content | Approved brand, homepage/activities, legal/privacy/contact, administrator assignments; no demo exposure | Not supplied |
-| Load | 10000 synthetic accounts, gradual 50→150→300 VUs, 15min steady 300, 80% browse/15% writes/5% uploads; independent 20MiB document/5MiB image and deadline/retry stress | Not run on target hardware |
-| Performance | Ordinary server requests P95 <2s and unexpected errors <1%; email arrival/upload throughput separate; no corruption/duplicates/OOM | Not measured on target hardware |
-| Recovery | Verified hourly encrypted backups; >=30d assets/versions; clean-target restore, referenced file hashes; measured <=4h recovery | Cloud rehearsal pending |
-| Monitoring | Real on-call alerts delivered for uptime, backup age, disk, cert, errors and fees | Not configured |
-| Release approval | Owner signs evidence; LAUNCH_APPROVED=true; readiness passes; remove staging protection last | Not approved |
+| 检查项 | 以后需要拿到什么结果 | 当前状态 |
+| --- | --- | --- |
+| 代码版本 | 确认发布版本、审查 PR、依赖及镜像安全检查、完整自动测试 | [PR #7](https://github.com/aladyaraya/Atox_Web/pull/7) 留存技术改动；M016 专项曾通过，当前完整回归待独立票务任务修复旧用例，人工审查及合并待做 |
+| 资源归属 | 公司控制域名、云账号，明确账单、运营、故障联系人 | 尚未提供 |
+| 云资源 | 真实报价、地区、访问限制、数据库不暴露公网、文件权限及版本保留 | 尚未提供 |
+| 正式邮件 | 发信域名验证、额度可用，真实 QQ／163／Gmail／Outlook 等邮箱可收验证码 | 尚未实测 |
+| 登录及权限 | 新老用户登录、重发／过期／退出正常，跨站写入受限，开发及未启用入口关闭 | 已有自动测试，真实测试站还需验证 |
+| 业务流程 | 报名、组队、材料提交／审核、项目投稿／发布、点赞评论完整跑通，公开／私有范围正确 | 本地回归与真实测试站验收需区分，后者待做 |
+| 正式内容 | 品牌、首页、活动、隐私／联系说明及管理员名单确认，不展示演示内容 | 待运营确认 |
+| 承载能力 | 10000 合成账号背景，逐级到 300 虚拟用户，稳定 15 分钟，混合浏览／写入／上传；另测 20MiB PDF、5MiB 图片、截止高峰及重试 | 尚未在目标服务器运行 |
+| 速度与稳定 | 普通请求 P95 小于 2 秒，非预期错误率低于 1%；邮件和上传耗时单列，无数据丢失／重复或内存耗尽 | 尚未测量；P95 表示 95% 请求不超过该耗时 |
+| 数据恢复 | 每小时加密备份可核验，附件及版本至少留 30 天，在干净环境恢复并核对附件、计时 | 云端演练待做，最多丢 1 小时／4 小时内恢复是待验证目标 |
+| 故障通知 | 网站、备份、磁盘、证书、错误及费用告警实际送达维护人员 | 尚未配置 |
+| 负责人确认 | 前述项目完成后决定开放日期，技术预检通过，最后解除测试访问密码 | 尚未批准，不执行发布 |
 
-The 300-VU mix is an initial reproducible scenario, not a claim that 300 simultaneous largest-file uploads are supported. Stop public release if tests fail; optimize or upgrade then rerun. Do not silently lower limits or rewrite activity deadlines to pass tests. Low-cost single-host deployment accepts maintenance downtime and has no automatic failover.
+300 虚拟用户混合使用不代表 300 人同时上传最大文件。未达目标先优化或升级再测，不能靠减少校验、修改截止日期通过。单服务器方案接受维护停机，没有故障自动切换。
+
+本表用来沟通以后“是否可以开放”，并不表示现在就要部署、采购或收集真实用户数据。

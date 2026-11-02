@@ -1,49 +1,61 @@
-# M016 · Production preparation (not a production deployment)
+# M016 · 部署技术说明（留待后续使用，尚未上线）
 
-Node website + PostgreSQL on one Linux host; private Alibaba OSS and a separate backup bucket; TLS transactional SMTP. No Logto or real payments. Local PGlite, QQ preview and existing files remain unchanged. Production artifacts do not contain .env files, user data or development databases.
+**第一次接触网站发布，请先阅读 [网站发布入门路线](../docs/网站发布入门路线.md)。** 那份文档解释你现在需要做什么；本文是以后确定部署方案后，供技术维护者使用的操作参考。现阶段无需照着运行命令或购买资源。
 
-## Prerequisites and purchasing
+已有技术方案为：同一台 Linux 云服务器运行网站与 PostgreSQL；附件放私有阿里云 OSS，备份放另一个存储空间；验证码由正式邮件服务发送。正式配置关闭 Logto、开发邮箱及模拟支付。本地 PGlite、QQ 邮件测试和原有文件保留。
 
-Use company-owned domain/cloud accounts. See [procurement](PROCUREMENT.md) for quote fields and [release gates](RELEASE-GATES.md). Candidate Hong Kong region must be tested from mainland and intended overseas locations before a long commitment. 4 vCPU/8GiB/100GiB is a test baseline, NOT certification of 300 concurrent users. Single host has no automatic failover.
+## 一、以后开始部署前的条件
 
-Install Docker Engine + Compose v2 on a maintained Linux host. Confirm image availability and security scan the fixed Node/PostgreSQL/Caddy versions before promotion. Keep SSH key-only and IP-restricted. Expose 80/443 only; never publish PostgreSQL or the application port. Docker-published ports must be restricted at the cloud security group too. Corporate maintainers own these tasks.
+域名及云账号由公司持有。费用填写 [采购询价表](PROCUREMENT.md)，验收填写 [正式开放检查表](RELEASE-GATES.md)。香港只是候选，需要从国内和目标海外地区实测后选择。4 核、8GB 内存、约 100GB 磁盘是测试起点，不代表已能承载 300 人。单服务器没有故障自动切换能力。
 
-## Isolated first deployment
+由技术维护者安装 Docker Engine 和 Compose v2，核对固定镜像版本并检查安全问题。远程维护使用密钥并限制来源 IP。面向公众开放网站所需的 80／443 端口，数据库和网站内部端口不直接暴露公网；云安全组也应限制容器公开端口。
 
-1. Review/merge the source PR and freeze its Git SHA. From a clean checkout copy `deploy/.env.example` to `deploy/.env` privately (never overwrite an existing file). Generate each 64-hex secret independently. Passwords with `$` must use literal single quotes in Compose .env. Set domain/DNS, authenticated SMTP sender, private OSS/backup buckets and scoped credentials. Set `RELEASE_ID` to the frozen SHA.
-2. Configure bucket-level block-public-access and versioning. Application RAM identity needs GetObject/PutObject and prefix-restricted ListObjects on the configured asset prefix. The upload sets an explicit private ACL, so also grant scoped PutObjectAcl only for a private ACL; deny public ACL changes. Backup identity is separate and needs equivalent scoped permissions on its backup bucket/prefix. Verify these policies with real uploads and anonymous GET denial before signoff. See [OSS object ACL permissions](https://www.alibabacloud.com/help/en/oss/user-guide/object-acl). No application deletion permission is required. Retain current asset objects indefinitely in this first release; retain noncurrent versions and encrypted backups at least 30 days. Do not set a 30-day expiry on all current user files. A future reviewed purge policy must protect every recoverable DB snapshot.
-3. Configure and verify the mail domain SPF/DKIM and owner-approved DMARC. Request sufficient daily and burst sending quota. Use the console's corresponding regional SMTP hostname, port 465 TLS. `MAIL_DOMAIN_VERIFIED=true` is an operator acknowledgment after DNS/provider verification, not an automatic DNS test. No fallback to QQ/dev mail. Test QQ/163/Gmail/Outlook and relevant overseas mailboxes and record actual arrival.
-4. Build: `docker compose build web`. Start ONLY DB: `docker compose up -d postgres`. Run `docker compose --profile maintenance run --rm migrate`. This creates a fresh DB with the original migration chain, not a copy of local users, sessions or administrator roles. Init creates separate non-superuser migration and runtime identities; web gets no bootstrap password. Never change old SQL or use `down -v`.
-5. Start the BASIC AUTH protected staging site: `docker compose up -d web edge`. Generate the staging hash using Caddy's interactive `hash-password`; don't pass a plaintext password in command arguments. HTTPS requires working DNS and reachable 80/443. Default readiness is 503 until approval; liveness remains available. Edge depends on service start, so maintenance can still configure the protected site.
-6. Register the genuine operator through verified email on the staging site. Bootstrap ONLY that existing account with `docker compose --profile maintenance run --rm maintenance node --import tsx scripts/admin-bootstrap.ts --email <operator email>`. This is the existing M008 audited one-time initialization, not an application endpoint. Subsequent operators are assigned in the admin UI.
-7. Publish the approved homepage/metadata; create real activities; ensure no fictional brand/contacts/permissions appear. Production public event/project readers hide demo records, keeping them in the DB for history. Original migration 0012 is not rewritten. Private materials remain private; official approval is separate from public publishing. Brand/legal copy needs a reviewed source/content update where it is still a shared static setting; do not declare these owner inputs complete automatically.
+## 二、以后建立受保护测试站的顺序
 
-Commands above run from deploy/. Full environment values, Compose resolved output, backups and authenticated browser reports must not be uploaded to CI or chat. Runtime env only enters containers, never the image build.
+以下操作由技术维护者执行，命令默认在 deploy/ 目录运行。
 
-## Backup and restore BEFORE launch
+1. **确认代码版本。** 审查并合并对应 PR，记录 Git 提交编号。使用干净代码目录，将 deploy/.env.example 复制为私有 deploy/.env，已有配置不能覆盖。各 64 位十六进制随机密钥分别生成；含 `$` 的密码在 Compose 环境文件中使用单引号。填写域名、邮件和存储配置，RELEASE_ID 填确认的提交编号。
+2. **设置私有存储。** 存储空间禁止公开访问并开启版本控制。网站账号仅获得指定附件前缀的 GetObject、PutObject 和受限 ListObjects 权限。上传显式设置私有 ACL，因此还需允许限定范围的 PutObjectAcl，只允许私有权限，禁止改成公开。备份使用另一账号及存储空间。真实上传后验证匿名请求不能读取文件。参见 [官方对象权限说明](https://help.aliyun.com/zh/oss/user-guide/object-acl)。网站不需要物理删除权限。首版保留当前附件，旧版本及加密备份至少保留 30 天；不能让所有当前用户文件 30 天后自动删除，未来物理清理要保护每份可恢复备份引用的附件。
+3. **设置正式邮件。** 按供应商要求完成发信域名、SPF／DKIM 及经公司确认的 DMARC，申请日额度和集中发送速率。使用对应区域 SMTP 地址及 465 加密端口。MAIL_DOMAIN_VERIFIED=true 表示人员已经核验，不是程序自动查过 DNS。失败不退回 QQ 或开发邮箱。实际测试 QQ、163、Gmail、Outlook 等收信并记录结果。
+4. **建立新的数据库。** 执行 `docker compose build web`；先启动 `docker compose up -d postgres`；再运行 `docker compose --profile maintenance run --rm migrate`。新库应用原迁移链，不复制本机用户、会话或测试管理员。运行与迁移账号分开且不是超级用户，网站不持有初始化密码。不要改旧 SQL，也不要执行会删除数据卷的 `down -v`。
+5. **开启带密码的测试站。** 执行 `docker compose up -d web edge`。使用 Caddy 交互式 hash-password 生成测试访问密码摘要，不将明文密码放入命令参数。HTTPS 需要域名解析及 80／443 可达。正式批准前 ready 默认返回 503，live 仍可用；不阻止技术人员在受保护测试站配置内容。
+6. **设置首位真实管理员。** 负责人通过真实邮件在测试站注册后，技术维护者运行 `docker compose --profile maintenance run --rm maintenance node --import tsx scripts/admin-bootstrap.ts --email <管理员邮箱>`。这是 M008 经审计的一次性维护操作，不是公开网页接口。后续管理员在后台授权。
+7. **录入真实内容。** 发布确认过的首页及活动，检查品牌、联系方式和公开授权。正式模式公开读取隐藏演示记录，数据库中仍保留历史，不重写 0012 迁移。私有材料不因审核通过自动公开。仍由共享静态配置提供的品牌和法律文案，需要经确认修改，不能自动当作已完成。
 
-Run `docker compose --profile maintenance run --rm maintenance node --import tsx scripts/production-backup.ts create`. It creates an authenticated AES-256-GCM encrypted custom-format pg_dump, uploads to a separate private bucket and reads/decrypts it back for integrity verification. Maximum dump size 512MiB in this initial implementation; larger DBs fail visibly and need a streaming backup implementation before promotion. The website still runs while pg_dump takes a consistent snapshot.
+真实环境文件、完整配置输出、数据库备份及含登录信息的浏览器报告不能上传到 GitHub 或聊天。运行密钥不写入镜像。
 
-Create a separate empty `atox_restore_<case>` PostgreSQL DB owned by the migrator. Run the maintenance image with DATABASE_URL overridden to that target and RESTORE_ACK=empty-isolated-database-only, then `scripts/production-backup.ts restore <backup-key>`. The script refuses other database names and nonempty targets, authenticates the complete ciphertext before executing SQL, and restores within one transaction. Verify users, roles, materials and all referenced asset bytes against the snapshot. Never restore over the active production DB.
+## 三、以后如何备份与恢复
 
-Assets remain immutable at stable keys, including logically deleted files, so old DB snapshots can recover matching attachments. DB/API authorization revokes public access immediately; a private bucket URL must never bypass the application. Bucket versioning remains necessary against accidental overwrite. Encryption keys are held separately in controlled company recovery storage with their matching backup generation; rotating keys must preserve old recovery keys.
+备份命令：`docker compose --profile maintenance run --rm maintenance node --import tsx scripts/production-backup.ts create`。
 
-Install `atox-backup.service` and `atox-backup.timer` under /etc/systemd/system, adjusting the reviewed checkout path. Enable the timer. Set external alerting for unit failure, last successful verified backup age >60 minutes, disk usage, database errors, certificate expiry and availability. Configure the actual on-call destination. Hourly backup plus 30-day retention is a target, not proof of RPO: a failed or long-running backup immediately breaks the 1h target and must alert. RTO 4h requires a timed clean-host rehearsal.
+命令生成 PostgreSQL 自定义格式备份，用 AES-256-GCM 加密后上传独立私有存储空间，再下载解密核对完整性。pg_dump 使用一致性快照，可在网站运行时执行。当前实现将完整备份放入内存，超过 512MiB 明确失败，达到该规模前需改为流式实现。
 
-## Isolated load fixtures
+恢复使用另一套空数据库，名称为 atox_restore_<演练名称>，由迁移账号持有。覆盖维护容器 DATABASE_URL 指向该目标，设置 RESTORE_ACK=empty-isolated-database-only，再运行 `scripts/production-backup.ts restore <备份对象键>`。脚本拒绝其他名称或非空目标，先认证完整密文再单事务恢复。核对账号、角色、材料和匹配附件；不能覆盖正在使用的正式库。
 
-Create a DIFFERENT PostgreSQL database named `atox_load_<case>` and migrate it. Register/bootstrap only the identified staging operator, publish an explicitly open non-demo activity using the existing admin UI, and keep the site protected by staging BASIC AUTH. Set DATABASE_URL to this isolated DB, LOAD_OPERATOR_USER_ID to that operator's UUID, LOAD_EVENT_ID to the activity, and LOAD_ACK=synthetic-isolated-data-only; run `npm run load:prepare`. It refuses the production database name and any users other than this operator. It creates 10000 synthetic accounts/sessions (24h expiry), never changes activity deadlines, and stores private fixture cookies and a valid synthetic PNG/PDF and non-personal event metadata under .data/load. This is a trusted offline fixture utility, not an HTTP login or role-grant endpoint. Do not use actual user files or clone the real production DB for load.
+云附件使用不可变键；业务上已删除的对象也保留，供历史数据库备份恢复使用。数据库和接口立即撤销访问资格，私有存储地址不能绕过权限。版本控制仍用于防止意外覆盖。加密密钥另存公司受控恢复资料；轮换时保留旧备份对应密钥。
 
-Run k6 on a separate load generator against the company-owned HTTPS staging origin, with OWNED_LOAD_TARGET_ACK=owned-isolated-staging, LOAD_ORIGIN, LOAD_EVENT_ID, LOAD_FIXTURE_FILE and LOAD_BASIC_TOKEN set privately; use deploy/load/k6.js. Default ramp is 50→150→300 with 15min steady, 80% reads/15% draft-and-formal material submissions/5% private image uploads. Each virtual user first registers through the real registration API; its first submission uploads a synthetic cover and PDF, then later submissions reuse those private file IDs. Override LOAD_UPLOAD_FILE to a synthetic valid maximum-size file and LOAD_UPLOAD_PURPOSE=document for a separate maximum-PDF upload run. Near-deadline/retry cases also require the separate business/browser rehearsals; the mixed-load script alone does not certify those cases. All generated account cookies, file fixtures and reports stay out of Git and CI artifacts. Record CPU/RAM, DB waits, bandwidth and provider limits before approving the tested configuration.
+技术维护者将 atox-backup.service 和 atox-backup.timer 安装到 /etc/systemd/system，核对目录后启用每小时任务。实际接通任务失败、最后成功备份超过 60 分钟、磁盘、数据库、证书和可用性告警。每小时备份和保留 30 天是目标；失败或耗时过长会破坏目标，必须提醒维护人员。“最多丢 1 小时数据、4 小时内恢复”需在干净环境计时演练后才能承诺。
 
-## Controlled public release
+## 四、以后如何做承载测试
 
-Pass [all gates](RELEASE-GATES.md), set LAUNCH_APPROVED=true, recreate web, run `production-preflight.ts` through the maintenance service, and verify `/api/health/ready`. Only THEN set CADDY_CONFIG=./Caddyfile.production and recreate edge. Do not remove staging BASIC AUTH before this point. Production preflight checks configuration and schema; it cannot certify DNS, real delivery, human content review or load by itself.
+使用独立 atox_load_<测试名称> PostgreSQL 数据库，不能使用正式库或真实用户文件。完成迁移，仅注册并初始化指定测试管理员，用后台发布报名、提交均开放的非演示测试活动。保持测试访问密码保护。
 
-Future releases build a new immutable SHA-tagged image, enter staging/maintenance protection, create and verify a backup, stop web for schema migration, run the dedicated migration job, restart and check readiness and business flows, then reopen access. Failed checks keep protection enabled. The initial deployment supports one web process/replica; do not enable cluster workers or add replicas while relying on the process-local write coordinator.
+DATABASE_URL 指向测试库，设置 LOAD_OPERATOR_USER_ID、LOAD_EVENT_ID 和 LOAD_ACK=synthetic-isolated-data-only，运行 `npm run load:prepare`。命令拒绝正式库名称及含其他账号的库，生成 10000 个合成账号、24 小时会话，并在 .data/load 保存私有凭据、合成图片／PDF 和活动配置。不修改活动期限，不授予合成账号管理员。这是离线工具，不是公开登录接口。
 
-Rollback means first protect/stop the site. If schema-compatible, deploy the previous reviewed image. Otherwise restore the matching DB snapshot into a new empty DB, verify its asset references and roles, then switch the connection and code together. Never automatically roll code back against an incompatible migrated schema or overwrite the current DB. Preserve the failed generation for investigation.
+在另一台压测机器上运行 deploy/load/k6.js，只能针对公司控制的独立 HTTPS 测试站。私下设置 OWNED_LOAD_TARGET_ACK=owned-isolated-staging、LOAD_ORIGIN、LOAD_EVENT_ID、LOAD_FIXTURE_FILE、LOAD_BASIC_TOKEN。默认逐级增加到 50、150、300 个虚拟用户，在 300 人规模持续 15 分钟；80% 浏览、15% 草稿／正式提交、5% 私有上传。每个虚拟用户先真实报名，首次提交上传合成封面和 PDF，后续复用文件 ID。
 
-## What is still external
+最大 PDF 测试另设 LOAD_UPLOAD_FILE 和 LOAD_UPLOAD_PURPOSE=document；临近截止及重试另行演练。脚本存在不等于已测承载能力。实际记录 CPU、内存、数据库等待、带宽及供应商额度；凭据和报告不上传远端。
 
-No cloud account/domain/SMTP/OSS keys are present. Purchasing, actual cloud ACL, HTTPS, sender DNS, mailbox delivery, mainland/overseas tests, target-hardware 300-VU load and cloud restore timing remain explicit release blockers until evidenced. CI fixtures cannot certify these. No resources are bought, no production is deployed, and no real local user data is migrated by this module.
+## 五、以后正式开放与更新
+
+[正式开放检查表](RELEASE-GATES.md) 全部完成后，由负责人批准设置 LAUNCH_APPROVED=true，重建网站容器，运行 production-preflight.ts 并验证 /api/health/ready。通过后再设置 CADDY_CONFIG=./Caddyfile.production，重建入口容器，最后解除测试密码。程序预检不能代替真实邮件、云权限、人工内容审核或承载测试。
+
+后续更新：确认版本 → 维护保护 → 验证备份 → 停止网站并迁移结构 → 启动新版本 → 检查业务 → 恢复开放。检查失败则保持保护。首版仅支持单网站进程，不能直接开集群或多副本。
+
+故障时先保护或停止网站。数据库兼容才可退回旧代码；不兼容则在另一空库恢复匹配备份，核对附件和角色，将代码和数据库一起切换。不能只退旧代码而继续使用不兼容的新数据库，不能自动覆盖当前库；保留失败版本以便排查。
+
+## 六、现在实际完成到哪里
+
+已有代码与配置保留为技术方案及隔离验证记录。尚未购买或部署云资源，公司账号、域名、正式邮件和 OSS 凭据未提供。真实云权限、HTTPS、发信域名、邮件到达、国内外访问、目标机器 300 人测试、告警及云端恢复演练均未完成。本地用户数据没有作为正式数据迁入。
+
+当前沟通阶段先帮助网站负责人理解路线。是否采购、建立测试站或正式开放，留待后续分别确定。
