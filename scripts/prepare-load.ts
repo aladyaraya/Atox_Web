@@ -31,6 +31,7 @@ async function main() {
     !("submissionClosesAt" in event) ||
     event.demo ||
     !event.published ||
+    !event.tracks.length ||
     Date.now() < Date.parse(event.registrationOpensAt) ||
     Date.now() >= Date.parse(event.registrationClosesAt) ||
     Date.now() < Date.parse(event.submissionOpensAt) ||

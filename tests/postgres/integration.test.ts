@@ -27,6 +27,7 @@ import { challenges, devMails, users } from "../../src/modules/auth/schema";
 import { bootstrapAdministrator } from "../../src/modules/admin/service";
 import { readEventRegistry } from "../../src/modules/content-management/store";
 import { readPublicProjects } from "../../src/modules/project-submission/store";
+import { assertDatabaseSchema } from "../../src/lib/database-readiness";
 let code = "",
   transportFailure = false;
 before(async () => {
@@ -72,6 +73,7 @@ after(async () => {
 test("PostgreSQL applies existing migrations once, hides imported demos and keeps production inbox empty", async () => {
   await migrateDatabase();
   const db = await getDb();
+  await assertDatabaseSchema(db);
   assert.equal((await db.select().from(devMails)).length, 0);
   assert.deepEqual(await readEventRegistry(), []);
   assert.deepEqual(await readPublicProjects(), []);

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { assertDatabaseSchema } from "@/lib/database-readiness";
 import { getDb } from "@/lib/db";
 import { checkDeployment } from "@/lib/deployment";
 export const runtime = "nodejs";
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     if (checkDeployment().length) throw new Error();
-    await (await getDb()).execute(sql`select id from users limit 1`);
+    await assertDatabaseSchema(await getDb());
     return Response.json(
       { status: "ready" },
       { headers: { "Cache-Control": "no-store" } },

@@ -1,5 +1,7 @@
 # HACKATHON · Atox Web
 
+M016 首发部署准备：新增正式事务邮件、PostgreSQL 与私有 OSS 适配、加密备份恢复、单机 Compose/Caddy、健康检查及受控发布说明。**尚未购买或部署云资源**，公司域名／邮件／存储、目标硬件压测与实际恢复是上线门槛。入口见 [部署操作](deploy/README.md)、[采购询价表](deploy/PROCUREMENT.md)、[发布证据](deploy/RELEASE-GATES.md)。本地开发仍默认 PGlite／本地私有文件，M001 接口及现有数据保持。
+
 本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP）。默认单收件人；显式设置 `MAIL_TEST_ALLOW_ANY_RECIPIENT=true` 可填写任意单个有效邮箱，当前本机已开启。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及验证见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。
 
 M015 项目投稿与管理已接入：[提交项目](http://localhost:3000/projects/submit)、[我的项目](http://localhost:3000/account/projects)、[后台项目管理](http://localhost:3000/admin/projects)。支持正式投稿、审核、预览、发布和下架；通过不自动公开，PDF 仅供审核。见 [模块说明](src/modules/project-submission/README.md)、[验收](docs/M015-VALIDATION.md)。
@@ -43,10 +45,11 @@ npm run dev
 ```text
 src/app/                  页面、API、路由适配；业务逻辑放模块内
 src/modules/              M001—M015（M010/M011 共用发布核）
+deploy/                   M016 受控部署、采购、备份恢复与压测
 labs/logto-oidc/           M013 隔离验证工程；独立依赖、容器和测试数据
 src/components/           共享导航、语言、布局及兼容导出
 src/lib/                  共享 DB、schema 聚合和兼容适配
-drizzle/                  0000—0012 追加迁移、snapshot 和 journal
+drizzle/                  0000—0013 追加迁移、snapshot 和 journal
 public/                   原创 SVG 等公开资产；禁止放私有附件
 tests/                    服务／规则、隔离浏览器、生产禁用测试
 scripts/                  迁移、受控初始化、维护和提交扫描
@@ -73,6 +76,7 @@ deliverables/             原模块源码快照，仅本地保留（不入 Git�
 | M013 | Logto＋OIDC 第一阶段：隔离验证与接入准备 | [独立实验](labs/logto-oidc/README.md) |
 | M014 | 官网 Logto 与原账号映射 | [M001 内部适配](src/modules/auth/oidc/README.md) |
 | M015 | 用户项目投稿、审核、授权预览与发布 | [project-submission](src/modules/project-submission/README.md) |
+| M016 | 邮箱首发生产适配与部署准备（尚未上线） | [deploy](deploy/README.md) |
 
 ## 配置
 

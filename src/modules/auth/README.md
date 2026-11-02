@@ -1,5 +1,13 @@
 # M001 · 邮箱认证模块
 
+## M016 · 正式邮件准备（与本机 QQ 测试分开）
+
+新增 production-mail.ts，MAIL_TRANSPORT=transactional-smtp；必须 production＋DEPLOYMENT_MODE=production＋PostgreSQL＋HTTPS正式域名＋已核验发信域名＋465 TLS，开发邮箱／OIDC／模拟支付同时关闭。SMTP_FROM 与认证用户名一致，校验证书，不降级／不自动重发／不记录验证码原文。原 send-code、verify-code、me、logout 和 AuthUser 不变，发送失败仍作废该次挑战并保留限额。
+
+原有每邮箱、来源 IP 和挑战次数限制保留，新增正式发信全站小时额度 AUTH_MAX_SENDS_PER_HOUR（默认10000），防止无界发送；0013 仅追加发送时间索引。不扩大邮箱字段为收件人列表。大规模活动同一出口 IP 的真实登录也需要在内测时验证，不能用跳过限流换取通过。
+
+数据库选择、生产配置及真实云验收门槛见 [M016](../../../deploy/README.md)。本机 .env.local、QQ 独立沙箱和 PGlite 数据不自动转成生产账号或管理员；真实 SMTP 域名／额度和实际海外收信尚需公司资源验收。
+
 ## 1.2.0 · 本机任意收件邮箱（2026-10-31）
 
 按用户要求新增 `MAIL_TEST_ALLOW_ANY_RECIPIENT=true`，允许在 3105 登录表单填写任意单个有效收件地址；发信仍使用原 QQ SMTP。当前本机已显式开启，无该值或值非 true 时继续原单收件人限制。`MAIL_TEST_RECIPIENT` 在开放模式下只供 `mail:check` 指定测试邮件收件人，验证码以表单输入为准；开放模式可不填写它，单收件模式仍必填。示例默认 false。

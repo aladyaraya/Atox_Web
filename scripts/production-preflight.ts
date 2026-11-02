@@ -1,6 +1,6 @@
 import { checkDeployment } from "../src/lib/deployment";
 import { getDb, closeDb } from "../src/lib/db";
-import { sql } from "drizzle-orm";
+import { assertDatabaseSchema } from "../src/lib/database-readiness";
 async function main() {
   const errors = checkDeployment();
   if (errors.length) {
@@ -9,7 +9,7 @@ async function main() {
     return;
   }
   try {
-    await (await getDb()).execute(sql`select id from users limit 1`);
+    await assertDatabaseSchema(await getDb());
     console.log(
       "Production configuration and database schema gates passed. Real mail delivery, cloud ACL, load and restore checks must be signed off separately.",
     );

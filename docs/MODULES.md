@@ -1,8 +1,8 @@
 # 模块登记与整合索引
 
-## M016 · 首发生产适配与部署准备
+## M016 1.0.0 · 首发生产适配与部署准备（未上线）
 
-技术交付集中在 deploy/、共享 DB／存储及 M001 正式邮件适配。M001 API 和本地 UUID 不变，新增 DATABASE_DRIVER／DATABASE_URL 和 STORAGE_DRIVER 双后端；不改原迁移或真实数据。Node 单进程＋同机 PostgreSQL、私有 OSS、独立加密备份、受保护 staging 和人工发布门槛。当前隔离验证中，未采购／部署／承诺 300 人容量；见 [维护及资源说明](../deploy/README.md)。
+技术交付集中在 deploy/、共享 DB／存储及 M001 正式邮件适配。M001 API 和本地 UUID 不变，新增 DATABASE_DRIVER／DATABASE_URL 和 STORAGE_DRIVER 双后端；不改原迁移或真实数据。Node 单进程＋同机 PostgreSQL、私有 OSS、独立加密备份、受保护 staging 和人工发布门槛。技术实现已交付，最终 CI 结果见验收记录；未采购／部署／承诺 300 人容量；见 [维护及资源说明](../deploy/README.md)。
 
 ## M001 1.2.0 · 本机任意收件邮箱（2026-10-31）
 
@@ -12,7 +12,7 @@
 
 仅扩展邮箱 OTP 的投递与登录表单开关；QQ SMTP、唯一测试收件人、独立 3105 数据，生产禁止。无新增模块编号／表／迁移，M013/M014 保留且不启用。真实收信、首次注册及退出后新码登录已由用户确认，沙箱核对仍为 1 个用户且标识一致；141 项服务、原登录浏览器 3 项、生产保护 2 项及类型／Lint／构建通过。范围、接口、配置和限制见 [认证 README](../src/modules/auth/README.md)，测试见 [记录](M001-SMTP-VALIDATION.md)。
 
-当前完整基线为 M001—M015。新机器及已有数据运行见 [交接说明](HANDOFF.md)；历史段落中的待开发描述以最新模块记录为准。
+当前源码包含 M001—M016；M016 不代表已经生产上线。新机器及已有数据运行见 [交接说明](HANDOFF.md)；历史段落中的待开发描述以最新模块记录为准。
 
 ## M015 1.0.0 · 用户项目投稿、审核与发布管理（2026-10-23）
 
@@ -77,6 +77,7 @@ M001 继续唯一认证集成边界；M002/M007 运行入口使用异步 resolve
 | M013 | Logto＋OIDC 第一阶段 | 1.0.0 · 隔离验证与接入准备 | `labs/logto-oidc/` | [模块说明](../labs/logto-oidc/README.md) |
 | M014 | 官网 Logto 与原账号映射 | 1.0.0 · 本地接入已验收 | `src/modules/auth/oidc/` | [说明](../src/modules/auth/oidc/README.md) |
 | M015 | 用户项目投稿、审核与发布管理 | 1.0.0 · 本地开发基线 | `src/modules/project-submission/` | [模块说明](../src/modules/project-submission/README.md) |
+| M016 | 首发生产适配与部署准备 | 1.0.0 · 隔离验证／待云验收 | `deploy/`、共享基础与 M001 | [维护](../deploy/README.md) · [验收](M016-VALIDATION.md) |
 
 后续模块由用户逐个指定，再登记编号、职责、入口、数据所有权、依赖、验收结果和整合事项。当前不预建团队统一提交、真实收款等额外业务实现。
 
