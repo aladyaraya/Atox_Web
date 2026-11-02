@@ -26,13 +26,14 @@
     "test:oidc-website": "playwright test --config=playwright.oidc.config.ts",
     "projects:cleanup-files": "tsx --env-file=.env.local scripts/cleanup-project-files.ts",
     "mail:preview": "node scripts/mail-preview.mjs",
-    "mail:check": "node --import tsx scripts/mail-check.mjs"
+    "mail:check": "node --import tsx scripts/mail-check.mjs",
+    "check:security": "node scripts/audit-dependencies.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
     "@logto/node": "4.0.1",
     "drizzle-orm": "^0.45.3",
-    "next": "^16.4.0",
+    "next": "16.4.3",
     "nodemailer": "^10.3.1",
     "pdf-lib": "^1.17.1",
     "react": "^19.3.0",
@@ -50,7 +51,7 @@
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.0",
+    "eslint-config-next": "16.4.3",
     "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",

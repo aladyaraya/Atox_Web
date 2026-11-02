@@ -4,6 +4,8 @@
 
 ## 安全运行基线
 
+候选依赖与审计门禁见 [安全报告](SECURITY-DEPENDENCIES.md)，执行 `npm run check:security` 检查根及实验的全部／生产锁文件，高危／严重或审计不可用时失败；中危保留输出与待办。本机 OIDC 不启用、SMTP 不向陌生邮箱自动发送。正式上线条件见 [上线清单](RELEASE-READINESS.md)。
+
 Node 24、npm ci、自己的 .env.local；密钥仅服务端，至少 32 字符且认证／模拟支付独立。APP_ORIGIN 与访问域完全一致；127.0.0.1 和 localhost 是不同来源。单进程占用同一个 PGlite 数据目录，网站和维护 CLI 不能同时打开它。
 
 默认 .data/pglite、.data/uploads 是私有状态，受 .gitignore 排除。若自定义为仓库其他位置，先把实际目录加入本地 .git/info/exclude 或 .gitignore，再检查暂存清单；私有目录禁止位于 public 中。新机器从空库正常应用迁移，不复制开发人员已有用户／会话或管理员。

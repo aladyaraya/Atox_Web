@@ -37,6 +37,8 @@ jobs:
       - run: npm ci
       - name: Check tracked files and secret patterns
         run: npm run check:repository
+      - name: Audit root and isolated-lab lockfiles (high and critical block)
+        run: npm run check:security
       - run: npm run lint
       - name: Generate current Next.js route types
         run: npx next typegen
