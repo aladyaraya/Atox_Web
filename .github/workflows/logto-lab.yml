@@ -1,0 +1,41 @@
+name: M013 Logto isolation lab
+on:
+  push:
+    paths: ["labs/logto-oidc/**", ".github/workflows/logto-lab.yml"]
+  pull_request:
+    paths: ["labs/logto-oidc/**", ".github/workflows/logto-lab.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: m013-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  logto-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: labs/logto-oidc
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: labs/logto-oidc/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run init
+      - name: Validate fixed isolated Compose configuration without printing secrets
+        run: docker compose --env-file .env.lab -f compose.yaml config --quiet
+      - run: npm run up
+      - run: npm run provision
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:oidc
+      - name: Stop isolated lab without deleting its volume
+        if: always()
+        run: npm run down
+      # No authenticated traces, screenshots, emails, config, tokens or PG volumes uploaded.

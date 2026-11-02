@@ -1,3 +1,7 @@
+# 本分支：M013/M014 统一登录预备模块
+
+不合入 main。包含 Logto 隔离实验和官网映射，不包含售票，生产关闭。以下核心说明以 main 为基准。
+
 # 当前模块登记
 
 范围由本表及各模块 README 共同定义。分支／PR 管理见 BRANCHES-AND-PRS.md，实际验收见 CORE-CONSOLIDATION-VALIDATION.md。历史交付不等于当前主线启用或公网发布。

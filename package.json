@@ -23,7 +23,10 @@
     "mail:preview": "node scripts/mail-preview.mjs",
     "mail:check": "node --import tsx scripts/mail-check.mjs",
     "check:security": "node scripts/audit-dependencies.mjs",
-    "check:boundaries": "node scripts/check-boundaries.mjs"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "oidc:preview": "node scripts/oidc-preview.mjs",
+    "oidc:approve-recovery": "cross-env NODE_ENV=development tsx scripts/oidc-approve-recovery.ts",
+    "test:oidc-website": "playwright test --config=playwright.oidc.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -34,7 +37,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "@logto/node": "4.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
@@ -52,5 +56,5 @@
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   },
-  "portalProfile": "core"
+  "portalProfile": "preview-oidc"
 }

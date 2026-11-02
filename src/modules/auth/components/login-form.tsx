@@ -6,14 +6,20 @@ import { errors } from "@/lib/i18n";
 import { useLanguage } from "@/components/language-provider";
 import { Header, Footer } from "@/components/site-shell";
 import { AuthClientError, sendLoginCode, verifyLoginCode } from "../client";
+import { OidcLogin } from "../oidc/components/oidc-login";
+import { oidcMessage } from "../oidc/messages";
 export function LoginForm({
   devMailEnabled,
   emailLoginEnabled = devMailEnabled,
   returnTo = "/account",
+  oidc = { enabled: false, sandbox: false },
+  centralError = false,
 }: {
   devMailEnabled: boolean;
   emailLoginEnabled?: boolean;
   returnTo?: string;
+  oidc?: { enabled: boolean; sandbox: boolean };
+  centralError?: boolean;
 }) {
   const { language, t } = useLanguage();
   const router = useRouter();
@@ -77,6 +83,14 @@ export function LoginForm({
           <div className="eyebrow purple-text">START SOMETHING GREAT</div>
           <h1>{t.welcome}</h1>
           <p className="muted auth-intro">{t.loginIntro}</p>
+          {centralError && (
+            <p role="alert" className="error">
+              {oidcMessage("CENTRAL_UNAVAILABLE", language)}
+            </p>
+          )}
+          {oidc.enabled && (
+            <OidcLogin returnTo={returnTo} sandbox={oidc.sandbox} />
+          )}
           {emailLoginEnabled && (
             <form
               onSubmit={(e) => {
@@ -144,8 +158,8 @@ export function LoginForm({
                     ? t.network
                     : error === "OIDC_REQUIRED"
                       ? language === "zh"
-                        ? "该账号保留外部身份绑定，当前暂不能通过邮箱登录，请联系维护人员。"
-                        : "This account has an external identity binding. Contact the maintainer to recover access."
+                        ? "此账号已关联统一身份，请使用 Logto 登录。"
+                        : "This account uses a linked identity. Please sign in with Logto."
                       : errors[language][error] ||
                         errors[language].INTERNAL_ERROR}
                 </p>

@@ -31,7 +31,7 @@ export default defineConfig({
       EVENT_REVIEWER_EMAILS: "reviewer@example.com",
       UPLOAD_PATH: path.join(path.dirname(fixtureFile), "uploads"),
       ENABLE_TICKETING_PREVIEW: "true",
-      ENABLE_LOGTO_LOGIN: "true",
+      ENABLE_LOGTO_LOGIN: "false",
       TICKETING_WEBHOOK_SECRET:
         "admin-ticketing-test-only-secret-at-least-32-characters",
     },

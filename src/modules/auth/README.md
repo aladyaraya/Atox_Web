@@ -1,3 +1,7 @@
+# 本分支认证增量：OIDC
+
+M001 保留主线真实本机邮件用途和 UUID。本分支恢复 oidc 适配和独立证据关联，不按同邮箱自动合并、不授予管理员。见 oidc/README.md 及根 labs/logto-oidc/README.md，不复制主站数据和环境到实验。
+
 # M001 邮箱认证与公开昵称
 
 当前主线维护说明；旧版开发轨迹通过 Git 历史查询。主线状态和分支见根 docs/MODULES.md、BRANCHES-AND-PRS.md。
