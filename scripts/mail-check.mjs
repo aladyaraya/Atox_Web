@@ -18,7 +18,7 @@ try {
   const { smtpConfig, deliverSmtp } =
     await import("../src/modules/auth/smtp.ts");
   const config = smtpConfig();
-  if (!config) throw new Error("Configuration unavailable");
+  if (!config?.recipient) throw new Error("Test recipient unavailable");
   await deliverSmtp(
     config.recipient,
     "HACKATHON 本机邮件投递测试",

@@ -15,7 +15,7 @@ import {
   isDevMailEnabled,
   isEmailLoginEnabled,
 } from "./mail";
-import { deliverSmtp, smtpConfig } from "./smtp";
+import { assertSmtpRecipient, deliverSmtp, smtpConfig } from "./smtp";
 export { isDevMailEnabled, listDevMails } from "./mail";
 
 import { AuthError } from "./errors";
@@ -59,8 +59,7 @@ export async function sendCode(
   if (language !== "zh" && language !== "en")
     throw new AuthError("INVALID_REQUEST");
   const smtp = smtpConfig();
-  if (smtp && email !== smtp.recipient)
-    throw new AuthError("MAIL_RECIPIENT_NOT_ALLOWED", 400);
+  if (smtp) assertSmtpRecipient(email, smtp);
   const prepared = await serialized(async () => {
     const db = await getDb();
     return db.transaction(async (tx) => {

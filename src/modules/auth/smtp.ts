@@ -2,6 +2,10 @@ import path from "node:path";
 import nodemailer from "nodemailer";
 import { AuthError } from "./errors";
 
+// A single mailbox only; never let an input become an SMTP recipient list.
+const mailboxPattern =
+  /^[^\s@<>,;:"()[\]\\]+@[^\s@<>,;:"()[\]\\]+\.[^\s@<>,;:"()[\]\\]+$/;
+
 /** This adapter is intentionally limited to the isolated local email test. */
 export function smtpConfig(
   env: Record<string, string | undefined> = process.env,
@@ -15,7 +19,8 @@ export function smtpConfig(
       root,
       path.resolve(env.DB_PATH || ".data/pglite"),
     );
-    const email = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+    const email = mailboxPattern;
+    const allowAnyRecipient = env.MAIL_TEST_ALLOW_ANY_RECIPIENT === "true";
     if (
       origin.protocol !== "http:" ||
       !["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname) ||
@@ -29,7 +34,7 @@ export function smtpConfig(
       !env.SMTP_PASSWORD?.trim() ||
       !email.test(env.SMTP_USER || "") ||
       env.SMTP_FROM !== env.SMTP_USER ||
-      !email.test(env.MAIL_TEST_RECIPIENT || "")
+      (!allowAnyRecipient && !email.test(env.MAIL_TEST_RECIPIENT || ""))
     )
       return null;
     return {
@@ -37,11 +42,21 @@ export function smtpConfig(
       user: env.SMTP_USER!,
       pass: env.SMTP_PASSWORD.trim(),
       from: env.SMTP_FROM!,
-      recipient: env.MAIL_TEST_RECIPIENT!.trim().toLowerCase(),
+      recipient: env.MAIL_TEST_RECIPIENT?.trim().toLowerCase() || "",
+      allowAnyRecipient,
     };
   } catch {
     return null;
   }
+}
+
+export function assertSmtpRecipient(
+  email: string,
+  config: NonNullable<ReturnType<typeof smtpConfig>>,
+) {
+  if (!mailboxPattern.test(email)) throw new AuthError("INVALID_EMAIL", 400);
+  if (!config.allowAnyRecipient && email !== config.recipient)
+    throw new AuthError("MAIL_RECIPIENT_NOT_ALLOWED", 400);
 }
 
 export async function deliverSmtp(
@@ -51,8 +66,7 @@ export async function deliverSmtp(
 ) {
   const config = smtpConfig();
   if (!config) throw new AuthError("MAIL_DISABLED", 503);
-  if (email !== config.recipient)
-    throw new AuthError("MAIL_RECIPIENT_NOT_ALLOWED", 400);
+  assertSmtpRecipient(email, config);
   const transport = nodemailer.createTransport({
     host: config.host,
     port: 465,

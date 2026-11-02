@@ -16,9 +16,10 @@ try {
     "SMTP_USER",
     "SMTP_FROM",
     "SMTP_PASSWORD",
-    "MAIL_TEST_RECIPIENT",
     "AUTH_SECRET",
   ];
+  if (settings.MAIL_TEST_ALLOW_ANY_RECIPIENT !== "true")
+    required.push("MAIL_TEST_RECIPIENT");
   if (
     required.some((key) => !settings[key]?.trim()) ||
     settings.AUTH_SECRET.length < 32
@@ -43,6 +44,11 @@ try {
     if (key.startsWith("LOGTO_") || key.startsWith("OIDC_")) delete env[key];
   console.log(
     "Local SMTP sandbox: http://127.0.0.1:3105/login (OIDC disabled; main environment and data untouched).",
+  );
+  console.log(
+    settings.MAIL_TEST_ALLOW_ANY_RECIPIENT === "true"
+      ? "Recipient mode: any single valid email address."
+      : "Recipient mode: configured test address only.",
   );
   const child = spawn(
     process.execPath,

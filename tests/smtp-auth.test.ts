@@ -44,6 +44,7 @@ before(async () => {
     SMTP_FROM: "sender@example.com",
     SMTP_PASSWORD: "fake-unit-password",
     MAIL_TEST_RECIPIENT: "recipient@example.com",
+    MAIL_TEST_ALLOW_ANY_RECIPIENT: "false",
   });
   mock.method(
     nodemailer,
@@ -57,7 +58,7 @@ before(async () => {
       assert.equal(options.debug, false);
       assert.equal(options.tls.rejectUnauthorized, true);
       return {
-        sendMail: async (mail: { text: string }) => {
+        sendMail: async (mail: { text: string; to: string }) => {
           body = mail.text;
           if (behavior === "wait") {
             started();
@@ -65,7 +66,7 @@ before(async () => {
           }
           if (behavior === "fail")
             throw new Error("provider error containing private content");
-          return { accepted: ["recipient@example.com"] };
+          return { accepted: [mail.to] };
         },
         close() {},
       };
@@ -184,4 +185,57 @@ test("SMTP network waits do not hold the shared write coordinator", async () => 
     .from(challenges)
     .where(eq(challenges.email, "recipient@example.com"));
   assert.equal(row.consumedAt, null);
+});
+
+test("Opt-in accepts different domains, keeps invalid-address checks and service limits", async () => {
+  await reset();
+  process.env.MAIL_TEST_ALLOW_ANY_RECIPIENT = "true";
+  try {
+    assert.ok(smtpConfig({ ...process.env, MAIL_TEST_RECIPIENT: "" }));
+    assert.equal(smtpConfig({ ...process.env, NODE_ENV: "production" }), null);
+    assert.equal(
+      smtpConfig({ ...process.env, ENABLE_LOGTO_LOGIN: "true" }),
+      null,
+    );
+    assert.equal(smtpConfig({ ...process.env, DB_PATH: ".data/pglite" }), null);
+    const ids = new Set<string>();
+    for (const address of [
+      "participant@gmail.com",
+      "participant@163.com",
+      "participant@outlook.com",
+    ]) {
+      const response = await auth.sendCode(
+        `  ${address.toUpperCase()}  `,
+        "zh",
+        "local",
+      );
+      assert.equal(response.ok, true);
+      const result = await auth.verifyCode(
+        address,
+        body.match(/\b\d{6}\b/)![0],
+      );
+      assert.equal(result.user.email, address);
+      ids.add(result.user.id);
+      await assert.rejects(
+        auth.sendCode(address, "zh", "local"),
+        hasCode("RATE_LIMITED"),
+      );
+    }
+    assert.equal(ids.size, 3);
+    await assert.rejects(
+      auth.sendCode("invalid", "zh", "local"),
+      hasCode("INVALID_EMAIL"),
+    );
+    await assert.rejects(
+      auth.sendCode("participant@gmail.com,another.example", "zh", "local"),
+      hasCode("INVALID_EMAIL"),
+    );
+    assert.equal((await (await getDb()).select().from(devMails)).length, 0);
+  } finally {
+    process.env.MAIL_TEST_ALLOW_ANY_RECIPIENT = "false";
+  }
+  await assert.rejects(
+    auth.sendCode("participant@gmail.com", "zh", "local"),
+    hasCode("MAIL_RECIPIENT_NOT_ALLOWED"),
+  );
 });

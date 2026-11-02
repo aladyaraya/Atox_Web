@@ -1,6 +1,6 @@
 # HACKATHON · Atox Web
 
-本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP、唯一测试收件人）。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及进度见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。
+本机邮箱真实投递可用 `npm run mail:preview`（独立 3105、QQ SMTP）。默认单收件人；显式设置 `MAIL_TEST_ALLOW_ANY_RECIPIENT=true` 可填写任意单个有效邮箱，当前本机已开启。不启用 Logto／OIDC，不修改原站环境或用户数据，生产仍关闭。配置及验证见 [认证模块](src/modules/auth/README.md)、[邮件验证](docs/M001-SMTP-VALIDATION.md)。
 
 M015 项目投稿与管理已接入：[提交项目](http://localhost:3000/projects/submit)、[我的项目](http://localhost:3000/account/projects)、[后台项目管理](http://localhost:3000/admin/projects)。支持正式投稿、审核、预览、发布和下架；通过不自动公开，PDF 仅供审核。见 [模块说明](src/modules/project-submission/README.md)、[验收](docs/M015-VALIDATION.md)。
 
